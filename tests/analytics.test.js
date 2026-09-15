@@ -1,0 +1,2 @@
+const test=require('node:test');const assert=require('node:assert/strict');const data=require('../data/mock/fleetData');const {metrics}=require('../backend/services/analytics_service/analyticsService');const {anomalies}=require('../intelligence/anomaly_detection/anomalyService');
+test('calcula métricas de la flota',()=>{const m=metrics(data);assert.equal(m.active,4);assert.ok(m.costs.total>0)});test('detecta anomalías incluidas en los datos simulados',()=>{assert.ok(anomalies(data).some(x=>x.vehicleId==='V-014'))});
