@@ -15,6 +15,11 @@ module.exports = {
     {id:'M-101',vehicleId:'V-022',date:date(-195),mileage:118000,type:'Correctivo',description:'Reparación de sistema de inyección',parts:'Inyectores',labor:420,cost:1380,provider:'Diesel Pro',nextMaintenance:date(-38),responsible:'Laura Rojas'},
     {id:'M-102',vehicleId:'V-031',date:date(-62),mileage:36500,type:'Preventivo',description:'Servicio programado',parts:'Aceite y filtro',labor:120,cost:390,provider:'Taller Central',nextMaintenance:date(25),responsible:'Ana Torres'}
   ],
+  maintenanceOrders: [
+    {id:'OM-101',vehicleId:'V-014',type:'Preventivo',description:'Servicio de 90.000 km',status:'PENDIENTE DE REVISIÓN',priority:'Alta',provider:'Taller Central',createdAt:date(-2),estimatedCost:640},
+    {id:'OM-102',vehicleId:'V-022',type:'Correctivo',description:'Revisión de inyección diésel',status:'AUTORIZADA',priority:'Crítica',provider:'Diesel Pro',createdAt:date(-1),estimatedCost:1380},
+    {id:'OM-103',vehicleId:'V-045',type:'Correctivo',description:'Diagnóstico de transmisión',status:'EN PROCESO',priority:'Crítica',provider:'Transmisiones Norte',createdAt:date(-5),estimatedCost:2400}
+  ],
   fuel: [
     {id:'F-1',vehicleId:'V-014',date:date(-5),mileage:88020,liters:67,cost:402,pricePerLiter:6,provider:'Estación Norte'},
     {id:'F-2',vehicleId:'V-014',date:date(-17),mileage:87500,liters:71,cost:426,pricePerLiter:6,provider:'Estación Norte'},
@@ -23,5 +28,5 @@ module.exports = {
   ],
   repairs: [{id:'R-1',vehicleId:'V-014',date:date(-23),problem:'Consumo elevado',diagnosis:'Inyectores desgastados',repair:'Limpieza y calibración',parts:'Kit de inyección',cost:880,downtime:2,priority:'Alta'},{id:'R-2',vehicleId:'V-045',date:date(-12),problem:'Falla de transmisión',diagnosis:'Desgaste interno',repair:'Pendiente de reparación',parts:'Kit transmisión',cost:2400,downtime:12,priority:'Crítica'}],
   parts: [{id:'P-01',name:'Filtro de aceite',code:'FIL-001',category:'Filtros',quantity:24,cost:18,provider:'Partes Andinas',compatible:'Toyota, Nissan',life:'10.000 km'}, {id:'P-02',name:'Pastillas de freno',code:'FRE-204',category:'Frenos',quantity:8,cost:75,provider:'Frenos Pro',compatible:'Ford, Hyundai',life:'35.000 km'}],
-  documents: [{id:'DOC-1',vehicleId:'V-014',type:'Seguro',expires:date(12)},{id:'DOC-2',vehicleId:'V-022',type:'Inspección',expires:date(-4)},{id:'DOC-3',vehicleId:'V-045',type:'Matrícula',expires:date(-19)}]
+  documents: [{id:'DOC-1',vehicleId:'V-014',type:'Seguro',number:'SEG-2026-014',issued:date(-353),expires:date(12),status:'Próximo a vencer'},{id:'DOC-2',vehicleId:'V-022',type:'Inspección',number:'INS-2025-022',issued:date(-370),expires:date(-4),status:'Vencido'},{id:'DOC-3',vehicleId:'V-045',type:'Matrícula',number:'MAT-2019-045',issued:date(-180),expires:date(-19),status:'Vencido'}]
 };
