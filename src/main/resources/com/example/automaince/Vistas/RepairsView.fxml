@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.RepairsController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="5" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Reparaciones" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Incidencias, diagnósticos y trabajos correctivos de la flota." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: #fff3ed; -fx-background-radius: 10; -fx-padding: 16;"><Label text="SEGUIMIENTO DE FALLAS" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #c45b42;"/><Label text="Problema y diagnóstico" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Consulta el trabajo reportado para cada unidad." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="COSTO OPERATIVO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #4b7790;"/><Label text="Costo y tiempo fuera de servicio" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Los registros alimentan los análisis de flota." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <HBox alignment="CENTER_LEFT" style="-fx-background-color: transparent;"><Label text="Historial de reparaciones" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Region HBox.hgrow="ALWAYS"/><Label text="Datos de solo consulta" style="-fx-font-size: 11px; -fx-text-fill: #73818a;"/></HBox>
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

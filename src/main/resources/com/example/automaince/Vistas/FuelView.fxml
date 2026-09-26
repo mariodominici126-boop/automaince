@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.FuelController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <HBox alignment="CENTER_LEFT" spacing="14" style="-fx-background-color: transparent;">
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Combustible" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Controla las cargas, el consumo y el costo por vehículo." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+    <HBox fx:id="actions" spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 3 0 4 0;"/>
+  </HBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: #e7f3f2; -fx-background-radius: 10; -fx-padding: 16;"><Label text="REGISTRO DE CARGAS" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #087f79;"/><Label text="Fecha · unidad · kilometraje" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Cada carga se comparte con el panel web." style="-fx-text-fill: #506a73;"/></VBox>
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="SEGUIMIENTO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #4b7790;"/><Label text="Litros y costo" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Usa el historial para comparar el rendimiento." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <Label text="Historial de combustible" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

@@ -1,1 +1,60 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoMaince</title><link rel="stylesheet" href="frontend/styles/app.css"></head><body><aside><div class="brand"><span>◈</span> Auto<span>Maince</span></div><p class="eyebrow">GESTIÓN INTELIGENTE</p><nav id="nav"><button data-page="dashboard" class="active">▦ Dashboard</button><button data-page="vehicles">▣ Vehículos</button><button data-page="orders">▤ Órdenes</button><button data-page="maintenance">⌁ Mantenimiento</button><button data-page="fuel">◉ Combustible</button><button data-page="repairs">⚒ Reparaciones</button><button data-page="parts">▤ Piezas</button><button data-page="documents">▧ Documentos</button><button data-page="alerts">⚠ Alertas <i id="alertCount"></i></button><button data-page="analytics">⌁ Analytics</button><button data-page="intelligence">✦ Intelligence</button></nav><div class="sidebar-foot">Datos simulados · V2</div></aside><main><header><div><p class="eyebrow" id="crumb">PANEL GENERAL</p><h1 id="title">Dashboard</h1></div><div class="header-actions"><button class="notification" data-page="alerts" title="Ver alertas">🔔 <i id="headerAlertCount"></i></button><span class="dot"></span><span>Operación en línea</span><button class="user">OM</button></div></header><section id="app"></section></main><div id="modal" class="modal hidden"></div><div id="toast" class="toast hidden" role="status"></div><script src="frontend/components/dashboard/dashboard.js"></script><script src="frontend/pages/vehicles/vehicles.js"></script><script src="frontend/pages/maintenance/maintenance.js"></script><script src="frontend/pages/maintenance/orders.js"></script><script src="frontend/pages/documents/documents.js"></script><script src="frontend/pages/alerts/alerts.js"></script><script src="frontend/pages/analytics/analytics.js"></script><script src="frontend/utils/app.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102b33">
+  <title>AutoMaince · Portal de mantenimiento</title>
+  <link rel="stylesheet" href="frontend/styles/app.css">
+  <link rel="stylesheet" href="frontend/styles/access.css">
+  <link rel="stylesheet" href="frontend/companies/gtg/login.css">
+  <link rel="stylesheet" href="frontend/companies/notions/login.css">
+  <link rel="stylesheet" href="frontend/companies/now-logistics/login.css">
+  <link rel="stylesheet" href="frontend/companies/printpilot/login.css">
+</head>
+<body>
+  <div id="accessPortal"></div>
+  <div id="workspace" class="workspace hidden">
+    <aside>
+      <div class="brand"><span>◈</span> Auto<span>Maince</span></div>
+      <p class="eyebrow">GESTIÓN INTELIGENTE</p>
+      <nav id="nav">
+        <button data-page="dashboard" class="active">▦ Dashboard</button>
+        <button data-page="vehicles">▣ Vehículos</button>
+        <button data-page="orders">▤ Órdenes</button>
+        <button data-page="maintenance">⌁ Mantenimiento</button>
+        <button data-page="fuel">◉ Combustible</button>
+        <button data-page="repairs">⚒ Reparaciones</button>
+        <button data-page="parts">▤ Piezas</button>
+        <button data-page="documents">▧ Documentos</button>
+        <button data-page="alerts">⚠ Alertas <i id="alertCount"></i></button>
+        <button data-page="analytics">⌁ Analytics</button>
+        <button data-page="intelligence">✦ Intelligence</button>
+      </nav>
+      <div class="sidebar-foot">Datos simulados · V2</div>
+    </aside>
+    <main>
+      <header>
+        <div><p class="eyebrow" id="crumb">PANEL GENERAL</p><h1 id="title">Dashboard</h1></div>
+        <div class="header-actions"><button class="notification" data-page="alerts" title="Ver alertas">🔔 <i id="headerAlertCount"></i></button><span class="dot"></span><span>Operación en línea</span><button class="user">OM</button></div>
+      </header>
+      <section id="app"></section>
+    </main>
+    <div id="modal" class="modal hidden"></div>
+    <div id="toast" class="toast hidden" role="status"></div>
+  </div>
+  <script src="frontend/components/dashboard/dashboard.js"></script>
+  <script src="frontend/pages/vehicles/vehicles.js"></script>
+  <script src="frontend/pages/maintenance/maintenance.js"></script>
+  <script src="frontend/pages/maintenance/orders.js"></script>
+  <script src="frontend/pages/documents/documents.js"></script>
+  <script src="frontend/pages/alerts/alerts.js"></script>
+  <script src="frontend/pages/analytics/analytics.js"></script>
+  <script src="frontend/companies/gtg/company.js"></script>
+  <script src="frontend/companies/notions/company.js"></script>
+  <script src="frontend/companies/now-logistics/company.js"></script>
+  <script src="frontend/companies/printpilot/company.js"></script>
+  <script src="frontend/pages/access/access.js"></script>
+  <script src="frontend/utils/app.js"></script>
+</body>
+</html>

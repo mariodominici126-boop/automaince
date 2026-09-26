@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.RecordsController" spacing="14" styleClass="page">
+  <VBox spacing="4"><Label fx:id="pageTitle" text="Módulo" styleClass="page-title"/><Label fx:id="pageDescription" styleClass="muted"/></VBox>
+  <HBox fx:id="actions" spacing="10" alignment="CENTER_LEFT"/>
+  <TableView fx:id="table" VBox.vgrow="ALWAYS" styleClass="data-table"/>
+</VBox>

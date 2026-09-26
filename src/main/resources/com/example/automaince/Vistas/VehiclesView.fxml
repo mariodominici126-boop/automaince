@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.VehiclesController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <HBox alignment="CENTER_LEFT" spacing="16" style="-fx-background-color: transparent;">
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Vehículos" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Administra las unidades y su información operativa." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+    <HBox fx:id="actions" spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 3 0 4 0;"/>
+  </HBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 15;"><Label text="INVENTARIO DE FLOTA" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #087f79;"/><Label text="Ficha general de unidades" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="La tabla muestra placa, responsable, kilometraje y estado." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="5" prefWidth="220" style="-fx-background-color: #e7f3f2; -fx-background-radius: 10; -fx-padding: 15;"><Label text="OPERACIÓN" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #087f79;"/><Label text="Datos compartidos" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Se reflejan también en la web." style="-fx-text-fill: #506a73;"/></VBox>
+  </HBox>
+  <VBox spacing="11" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <HBox alignment="CENTER_LEFT" style="-fx-background-color: transparent;"><Label text="Unidades registradas" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Region HBox.hgrow="ALWAYS"/><Label text="Actualizado desde el servidor" style="-fx-font-size: 11px; -fx-text-fill: #73818a;"/></HBox>
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

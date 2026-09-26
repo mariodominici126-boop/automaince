@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<HBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.PrintPilotLoginController" alignment="CENTER" spacing="0" style="-fx-font-family: 'Segoe UI'; -fx-background-color: #f2f5f6;">
+  <VBox alignment="CENTER" spacing="20" prefWidth="440" prefHeight="570" style="-fx-background-color: #343434; -fx-background-radius: 16 0 0 16;"><padding><Insets top="36" right="34" bottom="36" left="34"/></padding><ImageView fitWidth="290" fitHeight="130" preserveRatio="true"><image><Image url="@../images/printpilot.jpeg"/></image></ImageView><Label text="PrintPilot" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: white;"/><Label text="Acceso al portal de mantenimiento" wrapText="true" style="-fx-font-size: 13px; -fx-text-fill: #dddddd;"/></VBox>
+  <VBox spacing="17" prefWidth="470" prefHeight="570" style="-fx-background-color: white; -fx-background-radius: 0 16 16 0;"><padding><Insets top="48" right="48" bottom="38" left="48"/></padding>
+    <Label text="Bienvenido" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #252525;"/><Label text="Inicia sesión en PrintPilot" style="-fx-font-size: 13px; -fx-text-fill: #727a83;"/>
+    <Label text="Usuario" style="-fx-font-weight: bold; -fx-text-fill: #3e3e3e;"/><TextField fx:id="username" promptText="Usuario corporativo" style="-fx-padding: 11; -fx-background-color: #f8f9fa; -fx-border-color: #dce1e5; -fx-border-radius: 7; -fx-background-radius: 7;"/>
+    <Label text="Contraseña" style="-fx-font-weight: bold; -fx-text-fill: #3e3e3e;"/><PasswordField fx:id="password" promptText="Contraseña" style="-fx-padding: 11; -fx-background-color: #f8f9fa; -fx-border-color: #dce1e5; -fx-border-radius: 7; -fx-background-radius: 7;"/>
+    <Label fx:id="feedback" wrapText="true" minHeight="34" style="-fx-font-size: 11px; -fx-text-fill: #b3261e;"/>
+    <Button text="Iniciar sesión" maxWidth="Infinity" onAction="#login" style="-fx-background-color: #262626; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12; -fx-background-radius: 7;"/>
+    <Button text="← Volver a empresas" onAction="#back" style="-fx-background-color: transparent; -fx-text-fill: #596671; -fx-padding: 9 0;"/>
+  </VBox>
+</HBox>

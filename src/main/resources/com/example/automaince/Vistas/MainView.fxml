@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane style="-fx-font-family: 'Segoe UI'; -fx-background-color: #f4f7f8;" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.12" fx:controller="com.example.automaince.controllers.MainController">
+  <left>
+    <VBox prefWidth="225" spacing="9" style="-fx-background-color: #102b3a;">
+      <padding><Insets bottom="20" left="16" right="16" top="24" /></padding>
+      <Label style="-fx-text-fill: white; -fx-font-size: 21px; -fx-font-weight: bold;" text="mariohola" />
+      <Label style="-fx-text-fill: #8cb0ba; -fx-font-size: 10px; -fx-padding: 7 0 9 0;" text="GESTIÓN INTELIGENTE" />
+      <Button onAction="#dashboard" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▦  Dashboard" />
+      <Button onAction="#vehicles" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▣  Vehículos" />
+      <Button onAction="#orders" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▤  Órdenes" />
+      <Button onAction="#maintenance" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⌁  Mantenimiento" />
+      <Button onAction="#fuel" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="◉  Combustible" />
+      <Button onAction="#repairs" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⚒  Reparaciones" />
+      <Button onAction="#parts" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▤  Piezas" />
+      <Button onAction="#documents" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▧  Documentos" />
+      <Button onAction="#alerts" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⚠  Alertas" />
+      <Button onAction="#analytics" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⌁  Analytics" />
+      <Button onAction="#intelligence" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="✦  Intelligence" />
+      <Region VBox.vgrow="ALWAYS" />
+      <Label style="-fx-text-fill: #8cb0ba;" text="Datos compartidos · V2" />
+    </VBox>
+  </left>
+  <center>
+    <VBox spacing="12" style="-fx-background-color: #f4f7f8;">
+      <padding><Insets bottom="22" left="24" right="24" top="18" /></padding>
+      <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-background-color: transparent;"><Label fx:id="connectionStatus" style="-fx-text-fill: #73818a;" text="Conectando…" /><Region HBox.hgrow="ALWAYS" /><Label style="-fx-text-fill: #73818a;" text="Operación AutoMaince" /></HBox>
+      <StackPane fx:id="pageHost" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS" />
+    </VBox>
+  </center>
+</BorderPane>

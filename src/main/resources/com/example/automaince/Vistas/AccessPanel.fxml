@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.AccessPanelController" style="-fx-font-family: 'Segoe UI'; -fx-background-color: #f2f5f6;">
+  <top><HBox alignment="CENTER_LEFT" spacing="12" style="-fx-background-color: white; -fx-padding: 18 38; -fx-border-color: transparent transparent #e0e8eb transparent; -fx-border-width: 0 0 1 0;"><Label text="◈" style="-fx-font-size: 25px; -fx-text-fill: #087f79;"/><Label text="AutoMaince" style="-fx-font-size: 21px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Region HBox.hgrow="ALWAYS"/><Label text="PORTAL DE ACCESO CORPORATIVO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #73818a;"/></HBox></top>
+  <center>
+    <VBox alignment="CENTER" spacing="22" style="-fx-background-color: transparent;">
+      <padding><Insets top="32" right="48" bottom="36" left="48"/></padding>
+      <VBox alignment="CENTER" spacing="8" style="-fx-background-color: transparent;"><Label text="Mantenimiento, conectado." style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label text="Selecciona la empresa para continuar a su espacio de acceso." style="-fx-font-size: 14px; -fx-text-fill: #73818a;"/></VBox>
+      <GridPane hgap="18" vgap="18" maxWidth="920" style="-fx-background-color: transparent;">
+        <Button onAction="#openGtg" prefWidth="440" prefHeight="190" maxWidth="440" style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e1e9ec; -fx-border-radius: 14; -fx-border-width: 1; -fx-padding: 18; -fx-cursor: hand;" GridPane.columnIndex="0" GridPane.rowIndex="0">
+          <graphic><VBox alignment="CENTER" spacing="11" style="-fx-background-color: transparent;"><ImageView fitWidth="250" fitHeight="94" preserveRatio="true" image="@/com/example/automaince/images/companies/gtg/logo.png"/><Label text="GLOBAL TECHNOLOGY GROUP" style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #45454b;"/><Label text="Acceso GTG" style="-fx-font-size: 11px; -fx-text-fill: #8a9297;"/></VBox></graphic>
+        </Button>
+        <Button onAction="#openNotions" prefWidth="440" prefHeight="190" maxWidth="440" style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e1e9ec; -fx-border-radius: 14; -fx-border-width: 1; -fx-padding: 18; -fx-cursor: hand;" GridPane.columnIndex="1" GridPane.rowIndex="0">
+          <graphic><VBox alignment="CENTER" spacing="11" style="-fx-background-color: transparent;"><ImageView fitWidth="205" fitHeight="105" preserveRatio="true" image="@/com/example/automaince/images/companies/notions/logo.png"/><Label text="Notions Group" style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #596b6b;"/><Label text="Acceso Notions" style="-fx-font-size: 11px; -fx-text-fill: #8a9297;"/></VBox></graphic>
+        </Button>
+        <Button onAction="#openNow" prefWidth="440" prefHeight="190" maxWidth="440" style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e1e9ec; -fx-border-radius: 14; -fx-border-width: 1; -fx-padding: 18; -fx-cursor: hand;" GridPane.columnIndex="0" GridPane.rowIndex="1">
+          <graphic><VBox alignment="CENTER" spacing="11" style="-fx-background-color: transparent;"><ImageView fitWidth="180" fitHeight="104" preserveRatio="true" image="@/com/example/automaince/images/companies/nowlogistics/logo.png"/><Label text="NOW Logistics" style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #34376d;"/><Label text="Acceso NOW Logistics" style="-fx-font-size: 11px; -fx-text-fill: #8a9297;"/></VBox></graphic>
+        </Button>
+        <Button onAction="#openPrintPilot" prefWidth="440" prefHeight="190" maxWidth="440" style="-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e1e9ec; -fx-border-radius: 14; -fx-border-width: 1; -fx-padding: 18; -fx-cursor: hand;" GridPane.columnIndex="1" GridPane.rowIndex="1">
+          <graphic><VBox alignment="CENTER" spacing="11" style="-fx-background-color: transparent;"><ImageView fitWidth="245" fitHeight="75" preserveRatio="true" image="@/com/example/automaince/images/companies/printpilot/logo.png"/><Label text="PrintPilot" style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #343434;"/><Label text="Acceso PrintPilot" style="-fx-font-size: 11px; -fx-text-fill: #8a9297;"/></VBox></graphic>
+        </Button>
+      </GridPane>
+      <Label text="Accesos rápidos · AutoMaince Fleet" style="-fx-font-size: 11px; -fx-text-fill: #8a9297;"/>
+    </VBox>
+  </center>
+</BorderPane>

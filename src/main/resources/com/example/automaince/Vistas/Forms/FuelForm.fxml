@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<GridPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.FuelFormController" hgap="12" vgap="10" minWidth="440" style="-fx-font-family: 'Segoe UI'; -fx-background-color: white;">
+  <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Vehículo" GridPane.rowIndex="0"/><ComboBox style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="vehicle" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Fecha" GridPane.rowIndex="1"/><DatePicker style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="date" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Kilometraje" GridPane.rowIndex="2"/><TextField style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="mileage" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Litros" GridPane.rowIndex="3"/><TextField style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="liters" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Costo" GridPane.rowIndex="4"/><TextField style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="cost" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+  <Label style="-fx-text-fill: #344954; -fx-font-weight: bold;" text="Proveedor" GridPane.rowIndex="5"/><TextField style="-fx-pref-width: 260; -fx-padding: 8 10; -fx-background-color: white; -fx-border-color: #cbd5dc; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #243944;" fx:id="provider" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+</GridPane>

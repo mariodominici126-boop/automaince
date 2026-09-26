@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.MaintenanceController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <HBox alignment="CENTER_LEFT" spacing="14" style="-fx-background-color: transparent;">
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Mantenimiento" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Registra los servicios realizados y consulta su historial." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+    <HBox fx:id="actions" spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 3 0 4 0;"/>
+  </HBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="7" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="PREVENTIVO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #087f79;"/><Label text="Servicios programados" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Cambios de aceite, filtros e inspecciones periódicas." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="7" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="CORRECTIVO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #c45b42;"/><Label text="Reparaciones realizadas" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Consulta trabajos, costos y kilometraje registrado." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <Label text="Historial de servicios" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

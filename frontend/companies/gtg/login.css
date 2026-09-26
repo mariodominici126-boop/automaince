@@ -1,0 +1,26 @@
+.company-gtg .company-logo-image{background:transparent;padding:0}
+.company-gtg .company-logo-image img{max-width:93%;max-height:92%}
+.login-gtg{font-family:"Manrope","Segoe UI",Arial,sans-serif;background:#f8f9fb}
+.login-gtg .login-brand-panel{color:#2c3038;background-color:#f7f8fa;background-image:radial-gradient(#2c30381a 1px,transparent 1px);background-size:14px 14px;padding:30px clamp(28px,5vw,76px)}
+.login-gtg .login-brand-panel:before,.login-gtg .login-brand-panel:after{border:0;border-radius:0;width:54%;height:130%;right:-10%;bottom:-15%;background:#eef0f3;transform:skewX(-14deg);z-index:0}
+.login-gtg .login-brand-panel:before{right:2%;background:#f1f2f4}
+.login-gtg .login-back{color:#414650;background:#ffffffd9;border:1px solid #dfe2e6;border-radius:24px;font-weight:650}
+.login-gtg .login-brand-content{z-index:1}
+.login-gtg .login-logo-image{background:#fff;border:1px solid #e5e7ea;border-radius:8px;box-shadow:0 12px 32px #292d3510}
+.login-gtg .login-label{color:#d52c35;letter-spacing:2px}
+.login-gtg .login-brand-content h1{font-size:clamp(42px,6vw,82px);font-weight:800;letter-spacing:-4px;line-height:.95;color:#292d35;margin:15px 0}
+.login-gtg .login-brand-content p{color:#858b94;max-width:340px}
+.login-gtg .login-panel-foot{color:#878c94}
+.login-gtg .login-panel-foot i{color:#d52c35}
+.login-gtg .login-form-panel{background:#fff}
+.login-gtg .login-form-wrap h2{color:#2c3038;font-weight:800;letter-spacing:-.7px}
+.login-gtg .login-subtitle{color:#858b94}
+.login-gtg .company-login-form label{color:#555b65}
+.login-gtg .company-login-form input{border-color:#e1e4e8;border-radius:5px;background:#fafbfc}
+.login-gtg .company-login-form input:focus{border-color:#d52c35;box-shadow:0 0 0 3px #d52c3517}
+.login-gtg .login-submit{background:#2c3038;border-radius:28px;transition:background .2s,transform .2s}
+.login-gtg .login-submit:hover{background:#d52c35;transform:translateY(-1px)}
+.login-gtg .login-auth-note{color:#969ba2}
+@media(max-width:650px){.login-gtg .login-brand-panel{background-size:12px 12px;padding:18px 22px}.login-gtg .login-brand-content h1{font-size:40px;letter-spacing:-2px}.login-gtg .login-brand-panel:before,.login-gtg .login-brand-panel:after{width:52%;height:120%;right:-7%;bottom:-18%}}
+
+.company-gtg .company-logo-image img{max-width:93%;max-height:92%}

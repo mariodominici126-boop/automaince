@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.PartsController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="5" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Catálogo de piezas" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Consulta existencias, categorías y compatibilidad de piezas." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="INVENTARIO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #087f79;"/><Label text="Piezas disponibles" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Revisa código, categoría y cantidad registrada." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: #edf3f5; -fx-background-radius: 10; -fx-padding: 16;"><Label text="REFERENCIA" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #4b7790;"/><Label text="Compatibilidad y vida útil" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Información útil para planificar servicios." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <Label text="Piezas registradas" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

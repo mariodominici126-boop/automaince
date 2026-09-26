@@ -1,0 +1,20 @@
+.company-notions .company-logo-image{background:transparent!important;padding:0}
+.company-notions .company-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
+.login-notions .login-logo-image{background:transparent!important;border:0;box-shadow:none;padding:0;border-radius:0;width:250px;height:120px;margin-bottom:26px}
+.login-notions .login-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
+.login-notions{font-family:"Proxima Nova","Segoe UI",Arial,sans-serif;background:#f7f8f5}
+.login-notions .login-brand-panel{background:linear-gradient(138deg,#354b47 0%,#536964 65%,#68786e 100%);padding:30px clamp(28px,5vw,72px)}
+.login-notions .login-brand-panel:before,.login-notions .login-brand-panel:after{width:430px;height:430px;right:-210px;bottom:-200px;border-color:#c3d96e35;border-radius:50%;background:transparent;transform:none;z-index:0}
+.login-notions .login-brand-panel:before{width:330px;height:330px;right:-160px;bottom:-150px}
+.login-notions .login-back{border-radius:2px;border-color:#ffffff55;background:#ffffff0b}
+.login-notions .login-label{color:#bdd36c;letter-spacing:2px}
+.login-notions .login-brand-content h1{font-family:"Futura PT","Trebuchet MS",sans-serif;font-size:clamp(33px,4.2vw,54px);text-transform:uppercase;letter-spacing:1.4px;line-height:1.04}
+.login-notions .login-brand-content p{color:#d5dfd9}
+.login-notions .login-panel-foot{color:#b8c6c0}
+.login-notions .login-panel-foot i{color:#b8d25f}
+.login-notions .login-form-wrap h2{color:#465b55}
+.login-notions .company-login-form input:focus{border-color:#789b32;box-shadow:0 0 0 3px #789b321b}
+.login-notions .login-submit{background:#667d46;border-radius:2px}
+.login-notions .login-submit:hover{background:#536b35}
+.login-notions .login-demo button{color:#667d46}
+@media(max-width:650px){.login-notions .login-brand-panel{padding:18px 22px}.login-notions .login-logo-image{width:142px;height:70px;margin-bottom:13px}.login-notions .login-brand-content h1{font-size:25px;letter-spacing:.5px}}

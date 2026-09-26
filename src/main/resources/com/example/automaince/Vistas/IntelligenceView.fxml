@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.IntelligenceController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="5" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="AutoMaince Intelligence" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Señales experimentales y priorización de riesgo basadas en reglas." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+  <VBox spacing="7" style="-fx-background-color: #f4efff; -fx-background-radius: 10; -fx-padding: 16;"><Label text="MOTOR EXPERIMENTAL" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #7654a3;"/><Label text="Resultados explicables" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #3d3152;"/><Label text="Las señales usan reglas e historial simulado; no son una recomendación mecánica certificada ni un modelo de IA entrenado." wrapText="true" style="-fx-text-fill: #716780;"/></VBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="ANOMALÍAS" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #c45b42;"/><Label text="Señales detectadas" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Observaciones asociadas a las unidades." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;"><Label text="RIESGO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #7654a3;"/><Label text="Puntuación por vehículo" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Puntajes ordenados desde los datos actuales." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <Label text="Anomalías y evaluación de riesgo" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

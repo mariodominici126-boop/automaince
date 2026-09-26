@@ -1,0 +1,20 @@
+.company-now .company-logo-image{background:transparent!important;padding:0}
+.company-now .company-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
+.login-now .login-logo-image{background:transparent!important;border:0;box-shadow:none;padding:0;border-radius:0;width:250px;height:126px;margin-bottom:26px}
+.login-now .login-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
+.login-now{font-family:"Proxima Nova","Segoe UI",Arial,sans-serif;background:#f7f8fa}
+.login-now .login-brand-panel{background:linear-gradient(145deg,#171c38 0%,#232e62 58%,#304478 100%);padding:30px clamp(28px,5vw,72px)}
+.login-now .login-brand-panel:before,.login-now .login-brand-panel:after{width:440px;height:440px;right:-240px;bottom:-210px;border-color:#9eb5fa30;border-radius:50%;background:transparent;transform:none;z-index:0}
+.login-now .login-brand-panel:before{width:330px;height:330px;right:-182px;bottom:-154px}
+.login-now .login-brand-content{z-index:1}
+.login-now .login-label{color:#aebcff;letter-spacing:2px}
+.login-now .login-brand-content h1{font-family:"Futura PT","Trebuchet MS",sans-serif;font-size:clamp(34px,4.2vw,54px);text-transform:uppercase;letter-spacing:1.2px;line-height:1.04}
+.login-now .login-brand-content p{color:#d1d8eb}
+.login-now .login-panel-foot{color:#aab5d5}
+.login-now .login-panel-foot i{color:#9fb6ff}
+.login-now .login-form-wrap h2{color:#252d52}
+.login-now .company-login-form input:focus{border-color:#465eae;box-shadow:0 0 0 3px #465eae1a}
+.login-now .login-submit{background:#252b50;border-radius:3px}
+.login-now .login-submit:hover{background:#34477f}
+.login-now .login-demo button{color:#394f97}
+@media(max-width:650px){.login-now .login-brand-panel{padding:18px 22px}.login-now .login-logo-image{width:142px;height:70px;margin-bottom:13px}.login-now .login-brand-content h1{font-size:25px;letter-spacing:.5px}}

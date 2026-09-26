@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.DashboardController" spacing="16" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="4" style="-fx-background-color: transparent;"><Label text="Dashboard" style="-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label text="Resumen operativo consultado desde el servidor compartido." style="-fx-text-fill: #73818a;"/></VBox>
+  <HBox spacing="14" style="-fx-background-color: transparent;">
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" HBox.hgrow="ALWAYS"><Label text="Vehículos activos" style="-fx-text-fill: #73818a;"/><Label fx:id="active" style="-fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: #123a49; -fx-padding: 8 0 0 0;"/></VBox>
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" HBox.hgrow="ALWAYS"><Label text="En mantenimiento" style="-fx-text-fill: #73818a;"/><Label fx:id="maintenance" style="-fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: #123a49; -fx-padding: 8 0 0 0;"/></VBox>
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" HBox.hgrow="ALWAYS"><Label text="Fuera de servicio" style="-fx-text-fill: #73818a;"/><Label fx:id="outOfService" style="-fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: #123a49; -fx-padding: 8 0 0 0;"/></VBox>
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" HBox.hgrow="ALWAYS"><Label text="Costo operativo" style="-fx-text-fill: #73818a;"/><Label fx:id="cost" style="-fx-font-size: 25px; -fx-font-weight: bold; -fx-text-fill: #123a49; -fx-padding: 8 0 0 0;"/></VBox>
+  </HBox>
+  <HBox spacing="14" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;">
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"><Label text="Órdenes recientes" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="orders" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/></VBox>
+    <VBox spacing="8" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 17;" prefWidth="350"><Label text="Alertas importantes" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><ListView fx:id="alerts" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/></VBox>
+  </HBox>
+</VBox>

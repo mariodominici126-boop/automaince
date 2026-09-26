@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.AlertsController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="5" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Centro de alertas" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Incidencias generadas por reglas de mantenimiento y operación." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: #fff0ed; -fx-background-radius: 10; -fx-padding: 15;"><Label text="PRIORIDAD ALTA" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #bb4b3f;"/><Label text="Requieren atención" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #713b36;"/><Label text="Consulta el motivo y la acción recomendada." style="-fx-text-fill: #795f5a;"/></VBox>
+    <VBox spacing="5" HBox.hgrow="ALWAYS" style="-fx-background-color: #fff7e7; -fx-background-radius: 10; -fx-padding: 15;"><Label text="SEGUIMIENTO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #aa7719;"/><Label text="Mantenimiento y documentos" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #6f5c35;"/><Label text="Las alertas se actualizan con los datos del servidor." style="-fx-text-fill: #796d57;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <HBox alignment="CENTER_LEFT" style="-fx-background-color: transparent;"><Label text="Alertas activas" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Region HBox.hgrow="ALWAYS"/><Label text="Datos generados automáticamente" style="-fx-font-size: 11px; -fx-text-fill: #73818a;"/></HBox>
+    <TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>

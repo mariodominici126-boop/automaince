@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.controllers.DocumentsController" spacing="18" style="-fx-font-family: 'Segoe UI'; -fx-background-color: transparent;">
+  <VBox spacing="5" style="-fx-background-color: transparent;"><Label fx:id="pageTitle" text="Documentos" style="-fx-font-size: 27px; -fx-font-weight: bold; -fx-text-fill: #163747;"/><Label fx:id="pageDescription" text="Vigencia de seguros, inspecciones y documentos de las unidades." style="-fx-font-size: 13px; -fx-text-fill: #73818a;"/></VBox>
+  <HBox spacing="12" style="-fx-background-color: transparent;">
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: #edf3f5; -fx-background-radius: 10; -fx-padding: 16;"><Label text="CONTROL DOCUMENTAL" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #4b7790;"/><Label text="Fechas de vencimiento" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="Revisa la emisión y vigencia por vehículo." style="-fx-text-fill: #73818a;"/></VBox>
+    <VBox spacing="6" HBox.hgrow="ALWAYS" style="-fx-background-color: #fff7e7; -fx-background-radius: 10; -fx-padding: 16;"><Label text="SEGUIMIENTO" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #aa7719;"/><Label text="Vencidos y próximos" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><Label text="La información también se utiliza en las alertas." style="-fx-text-fill: #73818a;"/></VBox>
+  </HBox>
+  <VBox spacing="10" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 16;">
+    <Label text="Documentos de la flota" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #173d4c;"/><TableView fx:id="table" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 8;"/>
+  </VBox>
+</VBox>
