@@ -1,91 +1,67 @@
-# AutoMaince
+# AutoMaince · mantenimiento de flota y equipos
 
-Aplicación web para gestión, mantenimiento y análisis de flotas, con una aplicación JavaFX de escritorio que muestra la misma interfaz web. El navegador y el escritorio comparten las mismas pantallas y el mismo servidor.
+Aplicación web con interfaz compartida con el cliente JavaFX. El módulo PrintPilot trabaja con activos de producción y usa PostgreSQL.
 
-## Ejecución
+## Iniciar PostgreSQL local
 
-Requiere Node.js 18 o superior y Java 21. La aplicación JavaFX abre por defecto la web publicada en Render; por tanto, no es necesario iniciar Node.js para usarla con conexión a internet.
+Requiere Node.js 22 o superior y Docker Desktop con Compose.
 
-Para trabajar en desarrollo local, inicie el servidor desde la raíz:
+1. En PowerShell, abre la carpeta del proyecto.
+2. Instala las dependencias y copia la plantilla de variables una sola vez:
 
-```bash
+```powershell
+npm install
+npm run db:up
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+3. Inicia la aplicación:
+
+```powershell
 npm start
 ```
 
-Abra `http://localhost:3000` para usar la aplicación web local. Para que JavaFX use esa misma instancia local, configure la URL y ejecute:
-
-```bash
-AUTOMAINCE_WEB_URL=http://localhost:3000 ./mvnw javafx:run
-```
-
-En Windows PowerShell, configure `$env:AUTOMAINCE_WEB_URL = 'http://localhost:3000'`. Luego ejecute `npm start` en una terminal y `mvnw.cmd javafx:run` en otra. Si no configura esta variable, JavaFX abre `https://automaince.onrender.com`.
-
-Para validar la lógica principal: `npm test`.
-
-## Acceso provisional GTG
-
-Para revisión local, el usuario temporal es `admin.gtg` y la contraseña `GtgDemo2026!`. El servidor permite cambiarlos con las variables `GTG_DEMO_USER` y `GTG_DEMO_PASSWORD`. Este acceso es solo de demostración; antes de publicar el login en producción, configure credenciales privadas en el entorno del servidor y conecte la autenticación corporativa.
-
-Las vistas activas se editan una sola vez en `frontend/`; esos mismos HTML, CSS y JavaScript se ven en el navegador y dentro del escritorio. Los cambios hechos al código local se publican en la web y en JavaFX cuando se despliega la nueva versión en Render. Los FXML anteriores quedan como prototipos sin uso en el inicio de la aplicación.
-
-## Módulos por empresa
-
-La aplicación sigue siendo un solo producto web con un solo servidor y un área común de mantenimiento. Cada empresa tiene su propia carpeta para evitar mezclar logotipos, configuración, estilos, login y autenticación:
+4. Abre `http://localhost:3000` y entra a PrintPilot con:
 
 ```text
-frontend/companies/gtg/             Identidad, login y logo GTG
-frontend/companies/notions/         Identidad, login y logos Notions
-frontend/companies/now-logistics/   Identidad, login y logo NOW
-frontend/companies/printpilot/      Identidad, login y logo PrintPilot
-backend/companies/<empresa>/        Autenticación y lógica propia del servidor
-src/main/java/.../companies/<empresa>/  Controller JavaFX del login
-src/main/resources/.../Vistas/companies/<empresa>/  FXML del login
-src/main/resources/.../images/companies/<empresa>/  Recursos de escritorio
+Usuario: emmanuel
+Contraseña temporal: PP-Emmanuel-2026!
 ```
 
-`frontend/pages/access/` y `backend/server.js` coordinan las empresas. `frontend/components/` y `frontend/pages/` contienen las vistas compartidas de flota; `backend/services/`, `backend/models/`, `database/` y `data/` contienen la lógica y los datos compartidos. La aplicación JavaFX abre la misma web con WebView, así que se despliega y se edita una sola interfaz.
+La primera ejecución crea el esquema y los 19 activos del inventario PDF. La contraseña se conserva en PostgreSQL como hash scrypt con sal aleatoria, nunca en texto plano. El campo de cédula de esta cuenta queda pendiente; los técnicos nuevos deben registrar nombre, cédula y empresa.
 
-Cada módulo web registra sus datos desde `company.js`, sus colores desde `login.css` y sus imágenes desde `assets/`. La autenticación GTG está separada en `backend/companies/gtg/auth.js`. Los módulos Notions, NOW y PrintPilot dejan claro dónde conectar sus servicios; sus autenticaciones corporativas todavía no están integradas.
+La base nueva importa los datos de muestra GTG y crea el espacio de PrintPilot. El archivo SQLite anterior no se borra, pero los datos que se hayan agregado ahí no se transfieren automáticamente; guarda una copia de ese archivo antes de cambiar de base.
 
-## Subir cambios a GitHub y mantener la web pública
+PostgreSQL guarda sus datos en el volumen Docker `automaince-postgres-data`, así que reiniciar el servidor no los borra. Para detener solo la base sin borrar los datos: `npm run db:down`. No elimines el volumen si quieres conservar la base.
 
-El repositorio ya tiene configurado un remoto `origin` para GitHub y la rama de trabajo es `main`. Desde PowerShell, en la carpeta que abres en IntelliJ:
+## Gmail para Compras
+
+El módulo de insumos no registra una orden de gas hasta que el correo se envía. Configura en `.env` el Gmail remitente (`GMAIL_USER`) y su contraseña de aplicación (`GMAIL_APP_PASSWORD`). El destinatario ya está configurado como `printpilot@notions.com.do`; se puede cambiar mediante `PURCHASE_EMAIL`. Nunca compartas ni subas la contraseña de aplicación. Sin esa configuración, la solicitud informa el error y no aparece como enviada.
+
+El botón **Enviar por Gmail** de Contramedidas abre un borrador con el informe para que el usuario revise el destinatario y lo envíe.
+
+## Módulos PrintPilot
+
+- Panel y agenda con mantenimientos de la semana y los próximos 30 días.
+- Activos separados en menú: Aires, Filtros, Impresoras, Hornos y secadoras, Infraestructura y Cortadoras.
+- Plan preventivo de filtros mensual y semestral asociado a los equipos de aire.
+- Registro de mantenimientos completados, checklist obligatorio, técnico, fechas, materiales, horas, costos, hallazgos y recomendaciones.
+- Contramedidas para reparaciones y hallazgos, incluidos cambios electrónicos y repuestos.
+- Insumos de gas y tinta con entradas y consumos; el pedido de gas notifica por email a Compras.
+- Documentos para SDS, manuales, facturas y evidencias (PDF, imágenes, texto y Word hasta 8 MB), almacenados en PostgreSQL.
+- Informes filtrables, exportación CSV, impresión del navegador a PDF, informes por Gmail y bitácora con antes/después.
+- Registro de técnicos con nombre, cédula y empresa.
+
+## PostgreSQL alojado
+
+La conexión del proyecto usa `DATABASE_URL`. En un proveedor PostgreSQL, crea una base y establece `DATABASE_URL` como variable secreta del servidor, y `PGSSLMODE=require` cuando el proveedor requiera TLS. Configura también `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `PURCHASE_EMAIL` en el servidor. Los despliegues que usan almacenamiento efímero necesitan una base PostgreSQL administrada para conservar los datos.
+
+El esquema inicial está en `database/postgres/schema.sql`; el adaptador crea las tablas y carga los datos iniciales de GTG y PrintPilot al arrancar.
+
+## Pruebas
 
 ```powershell
-cd C:\Users\disla\IdeaProjects\automaince
-git status
-git add .
-git commit -m "Organiza el proyecto por empresa"
-git push origin main
+npm test
 ```
 
-Antes de confirmar, revisa `git status` y no subas `.env`, contraseñas reales, llaves ni tokens. `.gitignore` excluye esos archivos y conserva `.env.example` como plantilla. GitHub documenta el flujo para subir un repositorio local con `git add`, `git commit` y `git push`.
-
-La web necesita el **servidor Node**, así que en Render debe ser un **Web Service**, no un Static Site. Si el servicio AutoMaince existente está conectado al repositorio y a la rama `main`, Render puede desplegar automáticamente cada `git push`; revisa el despliegue en su panel y luego abre `https://automaince.onrender.com`. Si el servicio no está conectado, en Render elige **New → Web Service**, conecta el repositorio, deja la raíz en el directorio del proyecto, usa `npm install` como build command y `npm start` como start command, y habilita los despliegues automáticos de `main`.
-
-Antes del primer despliegue de esta versión, configura en **Render → servicio → Environment** los valores privados `GTG_DEMO_USER` y `GTG_DEMO_PASSWORD`. En producción el login GTG queda deshabilitado si faltan; no uses la contraseña de demostración local. La página seguirá siendo pública para visitar, aunque el acceso a las funciones de gestión requiere iniciar sesión. Una cuenta provisional no es un sistema de autenticación corporativo.
-
-Con el plan gratuito de Render, una web inactiva puede suspenderse y volver a arrancar cuando recibe otra visita, por lo que la primera carga tras un periodo sin tráfico podría tardar.
-
-## Arquitectura compartida
-
-- `frontend/`: interfaz web responsiva, componentes, páginas, estilos y navegación. Es la fuente visual única para web y escritorio.
-- `src/main/java/com/example/automaince/application/`: inicio de JavaFX WebView que carga la interfaz web compartida.
-- `backend/server.js`: servidor HTTP y API REST, que delega las rutas de login en los módulos de empresa.
-- `backend/services/`: reglas compartidas de alertas, órdenes y métricas.
-- `backend/models/`: contratos de entidades del dominio.
-- `database/adapters/localRepository.js`: adaptador para los datos simulados, reemplazable por PostgreSQL, MySQL, SQL Server o una API interna.
-- `data/mock/fleetData.js`: datos simulados intercambiables.
-- `intelligence/`: anomalías y priorización explicables basadas en reglas y estadísticas simples.
-
-## Datos e integración futura
-
-Los datos iniciales viven en `data/mock/fleetData.js`. Para conectar PostgreSQL, MySQL, SQL Server o una API interna, sustituya ese origen por un repositorio/adaptador en `database/adapters/`, conservando las respuestas que consumen los servicios. Esto permite mantener el frontend y la lógica de negocio sin cambios importantes.
-
-## Alcance experimental
-
-El módulo **AutoMaince Intelligence** no pretende ser IA entrenada: explica las anomalías y calcula el riesgo mediante umbrales de consumo, costos, fallas, mantenimiento y documentos. Sus estimaciones no son recomendaciones mecánicas certificadas.
-
-## V2: operación de mantenimiento
-
-La V2 agrega **órdenes de mantenimiento**, separadas de los registros históricos. El flujo de una orden es: `CREADA → PENDIENTE DE REVISIÓN → AUTORIZADA → EN PROCESO → COMPLETADA → CERRADA`. La información sigue siendo temporal durante la ejecución del prototipo; una base de datos conservará los cambios al sustituir el adaptador local.
+La aplicación no contiene ni expone la contraseña de correo. No subas `.env` al repositorio.

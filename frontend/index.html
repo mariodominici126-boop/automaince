@@ -12,12 +12,16 @@
   <link rel="stylesheet" href="frontend/companies/notions/login.css">
   <link rel="stylesheet" href="frontend/companies/now-logistics/login.css">
   <link rel="stylesheet" href="frontend/companies/printpilot/login.css">
+  <link rel="stylesheet" href="frontend/companies/printpilot/workspace.css">
 </head>
 <body>
   <div id="accessPortal"></div>
   <div id="workspace" class="workspace hidden">
     <aside>
-      <div class="brand"><span>◈</span> Auto<span>Maince</span></div>
+      <div class="brand">
+        <img class="brand-company-logo hidden" src="frontend/companies/gtg/assets/logo.png" alt="Global Technology Group">
+        <span class="brand-app-name"><span>◈</span> Auto<span>Maince</span></span>
+      </div>
       <p class="eyebrow">GESTIÓN INTELIGENTE</p>
       <nav id="nav">
         <button data-page="dashboard" class="active">▦ Dashboard</button>
@@ -37,7 +41,7 @@
     <main>
       <header>
         <div><p class="eyebrow" id="crumb">PANEL GENERAL</p><h1 id="title">Dashboard</h1></div>
-        <div class="header-actions"><button class="notification" data-page="alerts" title="Ver alertas">🔔 <i id="headerAlertCount"></i></button><span class="dot"></span><span>Operación en línea</span><button class="user">OM</button></div>
+        <div class="header-actions"><span class="workspace-company hidden"><i>GTG</i> Global Technology Group</span><button class="notification" data-page="alerts" title="Ver alertas">🔔 <i id="headerAlertCount"></i></button><span class="dot"></span><span>Operación en línea</span><button class="user">OM</button></div>
       </header>
       <section id="app"></section>
     </main>
@@ -55,7 +59,9 @@
   <script src="frontend/companies/notions/company.js"></script>
   <script src="frontend/companies/now-logistics/company.js"></script>
   <script src="frontend/companies/printpilot/company.js"></script>
+  <script src="frontend/companies/printpilot/modules.js"></script>
   <script src="frontend/pages/access/access.js"></script>
   <script src="frontend/utils/app.js"></script>
+  <script src="frontend/companies/printpilot/workspace.js"></script>
 </body>
 </html>

@@ -9,3 +9,4 @@ public class AccessPanelController {
     @FXML private void openNow() { ViewRouter.show("companies/nowlogistics/NowLoginView.fxml"); }
     @FXML private void openPrintPilot() { ViewRouter.show("companies/printpilot/PrintPilotLoginView.fxml"); }
 }
+
