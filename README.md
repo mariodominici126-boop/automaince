@@ -2,26 +2,33 @@
 
 Aplicación web con interfaz compartida con el cliente JavaFX. El módulo PrintPilot trabaja con activos de producción y usa PostgreSQL.
 
-## Iniciar PostgreSQL local
+## Iniciar PostgreSQL y la aplicación en Windows
 
-Requiere Node.js 22 o superior y Docker Desktop con Compose.
+No se requiere Docker. Instala Node.js 22 o superior y PostgreSQL para Windows desde el [instalador oficial enlazado por PostgreSQL](https://www.postgresql.org/download/windows/). Durante la instalación incluye pgAdmin y recuerda la contraseña que asignes al usuario `postgres`.
 
-1. En PowerShell, abre la carpeta del proyecto.
-2. Instala las dependencias y copia la plantilla de variables una sola vez:
+En CMD, en la carpeta del proyecto, copia la plantilla local si aún no tienes `.env`:
 
-```powershell
+```cmd
+if not exist .env copy .env.example .env
 npm install
-npm run db:up
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-3. Inicia la aplicación:
+En el menú Inicio, abre **SQL Shell (psql)**. Conéctate al servidor local (puedes aceptar los valores por defecto con Enter) e inicia sesión como `postgres` usando la contraseña elegida durante la instalación. Ejecuta estas instrucciones SQL, una por una:
 
-```powershell
+```sql
+CREATE USER automaince WITH PASSWORD 'automaince_dev';
+CREATE DATABASE automaince OWNER automaince;
+```
+
+Si PostgreSQL ya tiene ese usuario o esa base, no los crees de nuevo. La conexión se configura en `.env` mediante `DATABASE_URL`; el valor de plantilla es `postgresql://automaince:automaince_dev@127.0.0.1:5432/automaince`.
+
+Comprueba que el servicio PostgreSQL esté iniciado desde la aplicación **Servicios** de Windows (su nombre comienza con `postgresql`). Luego, en CMD:
+
+```cmd
 npm start
 ```
 
-4. Abre `http://localhost:3000` y entra a PrintPilot con:
+Abre `http://localhost:3000` y entra a PrintPilot con:
 
 ```text
 Usuario: emmanuel
@@ -30,9 +37,11 @@ Contraseña temporal: PP-Emmanuel-2026!
 
 La primera ejecución crea el esquema y los 19 activos del inventario PDF. La contraseña se conserva en PostgreSQL como hash scrypt con sal aleatoria, nunca en texto plano. El campo de cédula de esta cuenta queda pendiente; los técnicos nuevos deben registrar nombre, cédula y empresa.
 
-La base nueva importa los datos de muestra GTG y crea el espacio de PrintPilot. El archivo SQLite anterior no se borra, pero los datos que se hayan agregado ahí no se transfieren automáticamente; guarda una copia de ese archivo antes de cambiar de base.
+La primera ejecución crea el esquema y carga los datos iniciales en PostgreSQL. El servicio PostgreSQL de Windows guarda la base localmente y se inicia por separado del servidor web. El archivo SQLite anterior no se borra, pero sus datos no se transfieren automáticamente; guarda una copia antes de cambiar de base.
 
-PostgreSQL guarda sus datos en el volumen Docker `automaince-postgres-data`, así que reiniciar el servidor no los borra. Para detener solo la base sin borrar los datos: `npm run db:down`. No elimines el volumen si quieres conservar la base.
+## Ver la base de datos
+
+Abre pgAdmin 4 y conéctate al servidor local con el usuario `automaince` y la contraseña `automaince_dev`. En el árbol, abre **Databases → automaince → Schemas → public → Tables**. Las tablas aparecen después del primer inicio correcto del servidor AutoMaince.
 
 ## Gmail para Compras
 
