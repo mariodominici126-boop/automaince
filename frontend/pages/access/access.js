@@ -78,7 +78,13 @@ window.showCompanyLogin = function (companyId) {
 window.enterMaintenanceWorkspace = function (user) {
   document.getElementById('accessPortal').innerHTML = '';
   document.getElementById('accessPortal').classList.add('hidden');
-  document.getElementById('workspace').classList.remove('hidden');
+  const workspace = document.getElementById('workspace');
+  const isGtg = String(user.company || '').toLowerCase() === 'gtg';
+  workspace.classList.toggle('company-gtg', isGtg);
+  document.querySelector('.brand-company-logo').classList.toggle('hidden', !isGtg);
+  document.querySelector('.brand-app-name').classList.toggle('hidden', isGtg);
+  document.querySelector('.workspace-company').classList.toggle('hidden', !isGtg);
+  workspace.classList.remove('hidden');
   const userButton = document.querySelector('.user');
   userButton.textContent = user.initials || 'GTG';
   userButton.title = `${user.displayName || 'Usuario'} · Cerrar sesión`;
