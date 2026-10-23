@@ -184,7 +184,7 @@ async function completeOrder(input,user) {
   const client=await db.pool.connect();
   try {
     await client.query('BEGIN');
-    const found=await client.query(`SELECT o.*,p.tasks FROM work_orders o LEFT JOIN maintenance_plans p ON p.id=o.plan_id WHERE o.company_id=$1 AND o.id=$2 FOR UPDATE`,[COMPANY,input.orderId]);
+    const found=await client.query(`SELECT o.*,p.tasks FROM work_orders o LEFT JOIN maintenance_plans p ON p.id=o.plan_id WHERE o.company_id=$1 AND o.id=$2 FOR UPDATE OF o`,[COMPANY,input.orderId]);
     if (!found.rowCount) throw new Error('No se encontró la orden.');
     const order=found.rows[0],tasks=toJson(order.tasks||[]),checked=Array.isArray(input.checklist)?input.checklist:[];
     if(order.status==='COMPLETADA')throw new Error('Esta orden ya está completada y registrada en el historial.');

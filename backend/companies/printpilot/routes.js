@@ -1,5 +1,11 @@
 const service = require('./service');
 
+function contentDisposition(filename) {
+  const safeName = String(filename).replace(/[\r\n"\\]/g, '_');
+  const encodedName = encodeURIComponent(safeName).replace(/[!'()*]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `inline; filename="download"; filename*=UTF-8''${encodedName}`;
+}
+
 async function handle(req,res,url,session,parseBody,json) {
   const method=req.method,path=url.pathname.replace(/\/$/,'');
   const user=session.user;
@@ -46,12 +52,11 @@ async function handle(req,res,url,session,parseBody,json) {
   if(method==='GET'&&path.startsWith('/api/printpilot/documents/')&&path.endsWith('/file')){
     const id=path.split('/')[4],item=await service.documentContent(id);
     if(!item)return json(res,404,{error:'Archivo no encontrado.'});
-    const filename=String(item.original_filename).replace(/[\r\n"\\]/g,'_');
-    res.writeHead(200,{'Content-Type':item.mime_type,'Content-Length':item.contents.length,'Content-Disposition':`inline; filename="${filename}"`,'X-Content-Type-Options':'nosniff'});return res.end(item.contents);
+    res.writeHead(200,{'Content-Type':item.mime_type,'Content-Length':item.contents.length,'Content-Disposition':contentDisposition(item.original_filename),'X-Content-Type-Options':'nosniff'});return res.end(item.contents);
   }
   if(method==='GET'&&path==='/api/printpilot/reports')return json(res,200,await service.report({assetId:url.searchParams.get('assetId'),from:url.searchParams.get('from'),to:url.searchParams.get('to'),technicianId:url.searchParams.get('technicianId'),kind:url.searchParams.get('kind')}));
   if(method==='GET'&&path==='/api/printpilot/audit')return json(res,200,await service.auditLog());
   return false;
 }
 
-module.exports={handle};
+module.exports={handle,contentDisposition};

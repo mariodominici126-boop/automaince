@@ -39,6 +39,34 @@ La primera ejecución crea el esquema y los 19 activos del inventario PDF. La co
 
 La primera ejecución crea el esquema y carga los datos iniciales en PostgreSQL. El servicio PostgreSQL de Windows guarda la base localmente y se inicia por separado del servidor web. El archivo SQLite anterior no se borra, pero sus datos no se transfieren automáticamente; guarda una copia antes de cambiar de base.
 
+## Preparar una demo limpia de PrintPilot
+
+El reinicio elimina **todos los datos de la base local `automaince`** y vuelve a crear el esquema, los activos iniciales, los planes de filtros y la cuenta provisional. No lo ejecutes si necesitas conservar registros. Está bloqueado para producción y para bases que no sean `automaince` en localhost. Detén primero `npm start` y ejecuta en CMD o PowerShell:
+
+```text
+npm run db:reset
+npm start
+```
+
+En una segunda ventana de terminal, desde la carpeta del proyecto, ejecuta el guion de presentación:
+
+```text
+npm run demo:printpilot
+```
+
+El guion crea un plan, genera una orden, completa el mantenimiento con su checklist, registra una contramedida, adjunta y vuelve a abrir **Factura reparación.pdf** y **Señal.png**, agrega 10 unidades de tinta, consume 2 y genera un informe. Actualiza el navegador para ver los registros. El guion añade datos de demostración a la base; vuelve a ejecutar `npm run db:reset` para empezar desde cero.
+
+### Verificación de integración opcional
+
+Las pruebas unitarias de fase 0 se ejecutan con `npm test`. Para comprobar también el flujo completo contra PostgreSQL, crea una base separada llamada `automaince_test` (nunca uses la base de trabajo) y en PowerShell configura:
+
+```powershell
+$env:PRINTPILOT_TEST_DATABASE_URL = "postgresql://automaince:automaince_dev@127.0.0.1:5432/automaince_test"
+npm run test:integration
+```
+
+La prueba usa únicamente esa base local separada y conserva sus datos de demostración.
+
 ## Ver la base de datos
 
 Abre pgAdmin 4 y conéctate al servidor local con el usuario `automaince` y la contraseña `automaince_dev`. En el árbol, abre **Databases → automaince → Schemas → public → Tables**. Las tablas aparecen después del primer inicio correcto del servidor AutoMaince.

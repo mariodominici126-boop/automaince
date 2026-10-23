@@ -5,7 +5,10 @@
   "description": "Sistema web de mantenimiento y operación para equipos de PrintPilot y flotas empresariales",
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --env-file-if-exists=.env --test tests/*.test.js",
+    "test:integration": "node --env-file-if-exists=.env --test tests/phase0.integration.test.js",
+    "db:reset": "node --env-file-if-exists=.env scripts/db-reset.js",
+    "demo:printpilot": "node --env-file-if-exists=.env scripts/demo-printpilot.js"
   },
   "engines": {
     "node": ">=22"

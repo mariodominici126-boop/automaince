@@ -17,6 +17,7 @@ const companyAuth = {
   printpilot: require('./companies/printpilot/auth'),
 };
 const root = path.resolve(__dirname, '..');
+const frontendRoot = path.join(root, 'frontend');
 const sessions = new Map();
 const sessionLifetimeMs = 8 * 60 * 60 * 1000;
 const eventClients = new Map();
@@ -42,8 +43,16 @@ const parseBody=req=>new Promise((resolve,reject)=>{
   req.on('error',reject);
 });
 function serve(res,file) {
-  const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml'};
+  const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.webp':'image/webp','.woff':'font/woff','.woff2':'font/woff2'};
   fs.readFile(file,(error,content)=>{if(error)return json(res,404,{error:'Archivo no encontrado.'});res.writeHead(200,{'Content-Type':types[path.extname(file).toLowerCase()]||'text/plain'});res.end(content);});
+}
+function resolveFrontendFile(urlPath) {
+  let decodedPath;
+  try { decodedPath=decodeURIComponent(urlPath); } catch { return null; }
+  if(decodedPath==='/')return path.join(frontendRoot,'index.html');
+  if(!decodedPath.startsWith('/frontend/'))return null;
+  const file=path.resolve(frontendRoot,decodedPath.slice('/frontend/'.length));
+  return file.startsWith(`${frontendRoot}${path.sep}`)?file:null;
 }
 async function detail(item,data,companyId) {
   return {...item,maintenance:data.maintenance.filter(x=>x.vehicleId===item.id),fuel:data.fuel.filter(x=>x.vehicleId===item.id),repairs:data.repairs.filter(x=>x.vehicleId===item.id),documents:data.documents.filter(x=>x.vehicleId===item.id),orders:(await orders.list(companyId)).filter(x=>x.vehicleId===item.id),risk:risk(item,data)};
@@ -128,8 +137,9 @@ const server=http.createServer(async(req,res)=>{
       }
       return json(res,404,{error:'Ruta no encontrada.'});
     }
-    const requestedFile=path.resolve(root,url.pathname==='/'?'frontend/index.html':url.pathname.slice(1));
-    if(requestedFile!==root&&!requestedFile.startsWith(`${root}${path.sep}`))return json(res,403,{error:'Ruta no permitida.'});
+    if(!['GET','HEAD'].includes(req.method))return json(res,404,{error:'Ruta no encontrada.'});
+    const requestedFile=resolveFrontendFile(url.pathname);
+    if(!requestedFile)return json(res,404,{error:'Archivo no encontrado.'});
     return serve(res,requestedFile);
   }catch(error){
     if(res.writableEnded)return;
@@ -143,6 +153,6 @@ async function start(){
   const port=Number(process.env.PORT||3000),host=process.env.HOST||(process.env.PORT?'0.0.0.0':'127.0.0.1');
   server.listen(port,host,()=>{console.log(`AutoMaince en http://${host}:${port}`);console.log(`Base de datos PostgreSQL: ${process.env.DATABASE_URL?'DATABASE_URL':'127.0.0.1:5432/automaince'}`);});
 }
-start().catch(error=>{console.error('No se pudo iniciar PostgreSQL. Revisa DATABASE_URL y que el servicio esté iniciado.',error.message);process.exitCode=1;});
+if(require.main===module)start().catch(error=>{console.error('No se pudo iniciar PostgreSQL. Revisa DATABASE_URL y que el servicio esté iniciado.',error.message);process.exitCode=1;});
 
-module.exports={server};
+module.exports={server,resolveFrontendFile};
