@@ -13,7 +13,7 @@ function alerts(data) {
   });
   if (rules.enabled.documents) data.documents.forEach(d => { const days = Math.ceil((new Date(d.expires) - now) / 86400000); if (days <= 0) list.push(make(`A-D-${d.id}`, 'Documento vencido', 'ROJO', d.vehicleId, `${d.type} vencido.`, 'Renovar el documento antes de operar el vehículo.')); else if (days <= rules.documentDays) list.push(make(`A-D-${d.id}`, 'Documento próximo a vencer', 'AMARILLO', d.vehicleId, `${d.type} vence en ${days} días.`, 'Iniciar el proceso de renovación.')); });
   if (rules.enabled.openOrders) data.maintenanceOrders.filter(o => !['COMPLETADA','CERRADA'].includes(o.status)).forEach(o => list.push(make(`A-O-${o.id}`, 'Orden sin cerrar', o.priority === 'Crítica' ? 'ROJO' : 'AMARILLO', o.vehicleId, `${o.id} continúa en estado ${o.status}.`, 'Revisar responsable, autorización y fecha comprometida.')));
-  if (rules.enabled.anomalies) anomalies(data).forEach(a => list.push(make(`A-I-${a.vehicleId}`, 'Consumo o comportamiento anormal', a.severity === 'Crítica' ? 'ROJO' : 'AMARILLO', a.vehicleId, a.message, 'Revisar historial, consumo y costos antes de asignar una acción.')));
+  if (rules.enabled.anomalies) anomalies(data).forEach(a => list.push(make(`A-I-${a.vehicleId}`, 'Comportamiento operativo anormal', a.severity === 'Crítica' ? 'ROJO' : 'AMARILLO', a.vehicleId, a.message, 'Revisar el historial de mantenimiento, las reparaciones y los costos.')));
   return list;
 }
 module.exports = { alerts, rules };

@@ -26,6 +26,8 @@ Para validar la lógica principal: `npm test`.
 
 Para revisión local, el usuario temporal es `admin.gtg` y la contraseña `GtgDemo2026!`. El servidor permite cambiarlos con las variables `GTG_DEMO_USER` y `GTG_DEMO_PASSWORD`. Este acceso es solo de demostración; antes de publicar el login en producción, configure credenciales privadas en el entorno del servidor y conecte la autenticación corporativa.
 
+El espacio GTG está enfocado exclusivamente en la flota de camionetas. El registro de vehículos asigna el tipo `Camioneta` automáticamente; el módulo de combustible no forma parte de la experiencia GTG.
+
 Las vistas activas se editan una sola vez en `frontend/`; esos mismos HTML, CSS y JavaScript se ven en el navegador y dentro del escritorio. Los cambios hechos al código local se publican en la web y en JavaFX cuando se despliega la nueva versión en Render. Los FXML anteriores quedan como prototipos sin uso en el inicio de la aplicación.
 
 ## Módulos por empresa
@@ -49,14 +51,14 @@ Cada módulo web registra sus datos desde `company.js`, sus colores desde `login
 
 ## Subir cambios a GitHub y mantener la web pública
 
-El repositorio ya tiene configurado un remoto `origin` para GitHub y la rama de trabajo es `main`. Desde PowerShell, en la carpeta que abres en IntelliJ:
+El repositorio ya tiene configurado un remoto `origin` para GitHub. Este trabajo corresponde a la rama `empresa/gtg`. Desde PowerShell, en la carpeta que abres en IntelliJ:
 
 ```powershell
 cd C:\Users\disla\IdeaProjects\automaince
 git status
 git add .
-git commit -m "Organiza el proyecto por empresa"
-git push origin main
+git commit -m "Ajusta sistema GTG para camionetas"
+git push origin empresa/gtg
 ```
 
 Antes de confirmar, revisa `git status` y no subas `.env`, contraseñas reales, llaves ni tokens. `.gitignore` excluye esos archivos y conserva `.env.example` como plantilla. GitHub documenta el flujo para subir un repositorio local con `git add`, `git commit` y `git push`.
@@ -84,7 +86,7 @@ Los datos iniciales viven en `data/mock/fleetData.js`. Para conectar PostgreSQL,
 
 ## Alcance experimental
 
-El módulo **AutoMaince Intelligence** no pretende ser IA entrenada: explica las anomalías y calcula el riesgo mediante umbrales de consumo, costos, fallas, mantenimiento y documentos. Sus estimaciones no son recomendaciones mecánicas certificadas.
+El módulo **AutoMaince Intelligence** no pretende ser IA entrenada: explica las anomalías y calcula el riesgo mediante costos, fallas, mantenimiento y documentos. Sus estimaciones no son recomendaciones mecánicas certificadas.
 
 ## V2: operación de mantenimiento
 

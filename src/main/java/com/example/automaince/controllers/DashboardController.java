@@ -43,7 +43,7 @@ public class DashboardController {
     private void setColumns(List<Map<String,Object>> rows) {
         if (rows.isEmpty()) return;
         for (String key : List.of("id", "vehicleId", "description", "status", "priority")) {
-            TableColumn<Map<String,Object>,String> col = new TableColumn<>(key.equals("vehicleId") ? "Vehículo" : Character.toUpperCase(key.charAt(0))+key.substring(1));
+            TableColumn<Map<String,Object>,String> col = new TableColumn<>(key.equals("vehicleId") ? "Camioneta" : Character.toUpperCase(key.charAt(0))+key.substring(1));
             col.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getOrDefault(key,"—"))));
             orders.getColumns().add(col);
         }

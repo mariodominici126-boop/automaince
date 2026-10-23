@@ -11,10 +11,9 @@
       <Label style="-fx-text-fill: white; -fx-font-size: 21px; -fx-font-weight: bold;" text="mariohola" />
       <Label style="-fx-text-fill: #8cb0ba; -fx-font-size: 10px; -fx-padding: 7 0 9 0;" text="GESTIÓN INTELIGENTE" />
       <Button onAction="#dashboard" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▦  Dashboard" />
-      <Button onAction="#vehicles" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▣  Vehículos" />
+      <Button onAction="#vehicles" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▣  Camionetas" />
       <Button onAction="#orders" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▤  Órdenes" />
       <Button onAction="#maintenance" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⌁  Mantenimiento" />
-      <Button onAction="#fuel" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="◉  Combustible" />
       <Button onAction="#repairs" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="⚒  Reparaciones" />
       <Button onAction="#parts" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▤  Piezas" />
       <Button onAction="#documents" style="-fx-alignment: CENTER_LEFT; -fx-background-color: transparent; -fx-text-fill: #e4eff2; -fx-font-size: 13px; -fx-padding: 10 12; -fx-background-radius: 7;" text="▧  Documentos" />

@@ -16,7 +16,6 @@ public class MainController {
     @FXML private void vehicles() { show("vehicles"); }
     @FXML private void orders() { show("orders"); }
     @FXML private void maintenance() { show("maintenance"); }
-    @FXML private void fuel() { show("fuel"); }
     @FXML private void repairs() { show("repairs"); }
     @FXML private void parts() { show("parts"); }
     @FXML private void documents() { show("documents"); }
@@ -31,7 +30,6 @@ public class MainController {
                 case "vehicles" -> "VehiclesView.fxml";
                 case "orders" -> "OrdersView.fxml";
                 case "maintenance" -> "MaintenanceView.fxml";
-                case "fuel" -> "FuelView.fxml";
                 case "repairs" -> "RepairsView.fxml";
                 case "parts" -> "PartsView.fxml";
                 case "documents" -> "DocumentsView.fxml";

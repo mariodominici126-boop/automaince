@@ -1,6 +1,6 @@
 // Adaptador temporal. Los servicios reciben este contrato, no fleetData.js directamente.
 const store = require('../../data/mock/fleetData');
-const collections = ['vehicles', 'drivers', 'maintenance', 'maintenanceOrders', 'fuel', 'repairs', 'parts', 'documents'];
+const collections = ['vehicles', 'drivers', 'maintenance', 'maintenanceOrders', 'repairs', 'parts', 'documents'];
 
 function list(name) { return store[name] || []; }
 function find(name, id) { return list(name).find((item) => item.id === id); }
