@@ -31,6 +31,10 @@ async function handle(req,res,url,session,parseBody,json) {
   if(method==='GET'&&path==='/api/printpilot/plans')return json(res,200,await service.listPlans());
   if(method==='POST'&&path==='/api/printpilot/plans')return json(res,201,await service.createPlan(await parseBody(req),user));
   if(method==='GET'&&path==='/api/printpilot/orders')return json(res,200,await service.listOrders(url.searchParams.get('from'),url.searchParams.get('to')));
+  if(method==='PATCH'&&path.startsWith('/api/printpilot/orders/')){
+    const result=await service.changeOrderStatus(path.split('/').pop(),(await parseBody(req)).status,user);
+    return result?json(res,200,result):json(res,404,{error:'Orden no encontrada.'});
+  }
   if(method==='GET'&&path==='/api/printpilot/maintenance')return json(res,200,await service.listMaintenance());
   if(method==='POST'&&path==='/api/printpilot/maintenance')return json(res,201,await service.completeOrder(await parseBody(req),user));
   if(method==='GET'&&path==='/api/printpilot/countermeasures')return json(res,200,await service.listCountermeasures());

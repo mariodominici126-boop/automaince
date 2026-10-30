@@ -1,10 +1,11 @@
 const assert = require('node:assert/strict');
 const repository = require('../database/adapters/postgresRepository');
 const printpilot = require('../backend/companies/printpilot/service');
+const { todayInSantoDomingo, addDays } = require('../backend/companies/printpilot/dateUtils');
 
 const user = { id: 'PP-TECH-001', company: 'printpilot', displayName: 'Emmanuel · Demo', role: 'ADMINISTRADOR' };
 const tasks = ['Revisar condición general', 'Registrar resultado y evidencia'];
-const dateOnly = date => date.toISOString().slice(0, 10);
+const dateOnly = date => todayInSantoDomingo(date);
 
 async function runDemo(log = console.log) {
   await repository.initialize();
@@ -21,22 +22,25 @@ async function runDemo(log = console.log) {
     nextDueAt: dateOnly(new Date()),
   }, user);
   const today = dateOnly(new Date());
-  const tomorrowDate = new Date(); tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
-  const orders = await printpilot.listOrders(today, dateOnly(tomorrowDate));
+  const orders = await printpilot.listOrders(today, addDays(today, 1));
   const order = orders.find(item => item.plan_id === plan.id);
   assert.ok(order, 'El plan debe generar una orden para hoy.');
 
+  const ink = (await printpilot.listSupplies()).find(item => item.kind === 'TINTA');
+  assert.ok(ink, 'La base debe incluir el insumo Tinta.');
+  const initialInk = Number(ink.quantity);
+  await printpilot.recordSupplyMovement(ink.id, { movementType: 'ENTRADA', quantity: 10, note: 'Entrada del guion de demo.' }, user);
   const maintenance = await printpilot.completeOrder({
     orderId: order.id,
+    technicianId: user.id,
     startedAt: new Date().toISOString(),
     checklist: tasks.map(label => ({ label, done: true })),
     observations: 'Guion de demo: mantenimiento preventivo realizado.',
     findings: 'Sin anomalías en la inspección de demostración.',
     recommendations: 'Continuar con el intervalo preventivo definido.',
-    materials: [{ name: 'Filtro de demostración', quantity: 1 }],
+    materials: [{ supplyId: ink.id, quantity: 2 }],
     laborHours: 1.5,
     laborCost: 750,
-    totalCost: 950,
     description: 'Mantenimiento preventivo del guion de demostración.',
   }, user);
   const completed = (await printpilot.listOrders()).find(item => item.id === order.id);
@@ -49,7 +53,7 @@ async function runDemo(log = console.log) {
     rootCause: 'Validación funcional de la fase F0.',
     actionTaken: 'Inspeccionar, documentar y dar seguimiento.',
     technicianId: user.id,
-    status: 'PENDIENTE',
+    status: 'COMPLETADA',
   }, user);
 
   const files = [
@@ -71,18 +75,12 @@ async function runDemo(log = console.log) {
     assert.ok(opened.contents.equals(file.content), `El documento ${file.filename} debe abrirse con su contenido original.`);
   }
 
-  const ink = (await printpilot.listSupplies()).find(item => item.kind === 'TINTA');
-  assert.ok(ink, 'La base debe incluir el insumo Tinta.');
-  const initialInk = Number(ink.quantity);
-  await printpilot.recordSupplyMovement(ink.id, { movementType: 'ENTRADA', quantity: 10, note: 'Entrada del guion de demo.' }, user);
-  const afterEntry = (await printpilot.listSupplies()).find(item => item.id === ink.id);
-  assert.equal(Number(afterEntry.quantity), initialInk + 10);
-  await printpilot.recordSupplyMovement(ink.id, { movementType: 'CONSUMO', quantity: 2, note: 'Consumo del guion de demo.' }, user);
   const afterUse = (await printpilot.listSupplies()).find(item => item.id === ink.id);
-  assert.equal(Number(afterUse.quantity), initialInk + 8, 'Después de agregar 10 y consumir 2 deben quedar 8 unidades adicionales.');
+  assert.equal(Number(afterUse.quantity), initialInk + 8, 'Después de agregar 10 y consumir 2 desde el mantenimiento deben quedar 8 unidades adicionales.');
 
   const report = await printpilot.report({ assetId: asset.id });
   assert.ok(report.some(row => row.id === maintenance.id), 'El mantenimiento debe aparecer en el informe del activo.');
+  assert.ok(report.some(row => row.id === countermeasure.id && row.kind === 'CORRECTIVO'), 'La contramedida terminada debe aparecer como correctivo en el informe.');
   log(`Plan preventivo: ${plan.id}`);
   log(`Orden completada: ${order.id}`);
   log(`Mantenimiento: ${maintenance.id}`);

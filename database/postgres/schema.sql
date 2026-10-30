@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
   plan_id TEXT REFERENCES maintenance_plans(id),
   kind TEXT NOT NULL DEFAULT 'PREVENTIVO',
   description TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'PROGRAMADA',
+  status TEXT NOT NULL DEFAULT 'PROGRAMADA' CHECK (status IN ('PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CANCELADA','VENCIDA')),
   priority TEXT NOT NULL DEFAULT 'MEDIA',
   planned_at DATE,
   started_at TIMESTAMPTZ,
@@ -134,8 +134,8 @@ CREATE TABLE IF NOT EXISTS countermeasures (
   asset_id TEXT NOT NULL REFERENCES assets(id),
   maintenance_record_id TEXT REFERENCES maintenance_records(id),
   title TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'PENDIENTE',
-  priority TEXT NOT NULL DEFAULT 'MEDIA',
+  status TEXT NOT NULL DEFAULT 'PENDIENTE' CHECK (status IN ('PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CERRADA')),
+  priority TEXT NOT NULL DEFAULT 'MEDIA' CHECK (priority IN ('BAJA','MEDIA','ALTA','CRITICA')),
   issue TEXT NOT NULL DEFAULT '',
   root_cause TEXT NOT NULL DEFAULT '',
   action_taken TEXT NOT NULL DEFAULT '',
@@ -238,3 +238,18 @@ CREATE TABLE IF NOT EXISTS asset_readings (
   note TEXT NOT NULL DEFAULT '',
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- En bases creadas antes de estas validaciones, imponerlas a las escrituras nuevas
+-- sin bloquear el arranque por registros históricos que ya contengan valores antiguos.
+DO $$ BEGIN
+  ALTER TABLE work_orders ADD CONSTRAINT work_orders_status_allowed
+    CHECK (status IN ('PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CANCELADA','VENCIDA')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE countermeasures ADD CONSTRAINT countermeasures_status_allowed
+    CHECK (status IN ('PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CERRADA')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE countermeasures ADD CONSTRAINT countermeasures_priority_allowed
+    CHECK (priority IN ('BAJA','MEDIA','ALTA','CRITICA')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

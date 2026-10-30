@@ -10,9 +10,14 @@ test('PrintPilot completa la orden y ejecuta el guion de demo en PostgreSQL', { 
   const repository = require('../database/adapters/postgresRepository');
   const { runDemo } = require('../scripts/demo-printpilot');
   try {
+    await repository.initialize();
+    await repository.query("UPDATE supplies SET unit_cost=100 WHERE company_id='printpilot' AND kind='TINTA'");
     const result = await runDemo(() => {});
     assert.equal(result.order.status, 'COMPLETADA');
+    assert.equal(Number(result.maintenance.total_cost), 950, 'El total debe calcularse automáticamente: 750 de mano de obra y 200 de tinta.');
+    assert.equal(result.maintenance.technician_id, 'PP-TECH-001', 'El historial debe guardar el técnico seleccionado.');
     assert.ok(result.report.some(row => row.id === result.maintenance.id));
+    assert.ok(result.report.some(row => row.id === result.countermeasure.id && row.kind === 'CORRECTIVO'));
     assert.ok(Number(result.ink.quantity) >= 8);
   } finally {
     await repository.close();

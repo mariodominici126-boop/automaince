@@ -1,14 +1,28 @@
-const { randomUUID } = require('crypto');
+const { randomUUID, randomBytes, scrypt } = require('crypto');
+const { promisify } = require('util');
 const nodemailer = require('nodemailer');
 const db = require('../../../database/adapters/postgresRepository');
+const { todayInSantoDomingo, addDays, addMonthsClamped } = require('./dateUtils');
 
 const COMPANY = 'printpilot';
 const CATEGORIES = ['AIRES','IMPRESORAS','HORNO_SECADO','INFRAESTRUCTURA','CORTADORAS'];
 const toJson = value => (typeof value === 'string' ? JSON.parse(value) : value);
 const actorId = user => user?.id || 'PP-TECH-001';
-const asDate = value => value ? new Date(value) : null;
 const dateString = value => value?.toISOString?.().slice(0,10) || value;
-const addMonths = (date, months) => { const next = new Date(`${date}T12:00:00Z`); next.setUTCMonth(next.getUTCMonth()+months); return next.toISOString().slice(0,10); };
+const scryptAsync = promisify(scrypt);
+const ORDER_STATUSES = ['PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CANCELADA','VENCIDA'];
+const COUNTERMEASURE_STATUSES = ['PENDIENTE','PROGRAMADA','EN PROCESO','COMPLETADA','CERRADA'];
+const COUNTERMEASURE_PRIORITIES = ['BAJA','MEDIA','ALTA','CRITICA'];
+const validateCountermeasureValues = input => {
+  if (input.status !== undefined && !COUNTERMEASURE_STATUSES.includes(input.status)) throw new Error(`Estado no válido. Use: ${COUNTERMEASURE_STATUSES.join(', ')}.`);
+  if (input.priority !== undefined && !COUNTERMEASURE_PRIORITIES.includes(input.priority)) throw new Error(`Prioridad no válida. Use: ${COUNTERMEASURE_PRIORITIES.join(', ')}.`);
+};
+async function hashPassword(password) {
+  if (typeof password !== 'string' || password.trim().length < 8) throw new Error('La contraseña temporal debe tener al menos 8 caracteres.');
+  const salt = randomBytes(16).toString('hex');
+  const hash = await scryptAsync(password, salt, 64);
+  return `scrypt$${salt}$${hash.toString('hex')}`;
+}
 function audit(client, user, action, kind, id, beforeState, afterState) {
   return client.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,before_state,after_state)
     VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb)`, [COMPANY,actorId(user),user?.displayName || user?.name || 'Emmanuel',action,kind,String(id),beforeState?JSON.stringify(beforeState):null,afterState?JSON.stringify(afterState):null]);
@@ -72,7 +86,7 @@ async function addAssetReading(assetId,input,user) {
       const clean=value=>String(value).replace(/[^0-9.]/g,'_');
       const orderId=`PP-OT-${plan.plan_id}-${assetId}-U${clean(firstDue)}-${clean(nextDue-interval)}`;
       await client.query(`INSERT INTO work_orders(id,company_id,asset_id,plan_id,kind,description,status,planned_at,technician_id)
-        VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',current_date,(SELECT assigned_to FROM maintenance_plans WHERE id=$4)) ON CONFLICT DO NOTHING`,[orderId,COMPANY,assetId,plan.plan_id,`Mantenimiento por ${plan.usage_unit||unit}: ${plan.name}. Lectura registrada: ${reading} ${unit}.`]);
+        VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',$6,(SELECT assigned_to FROM maintenance_plans WHERE id=$4)) ON CONFLICT DO NOTHING`,[orderId,COMPANY,assetId,plan.plan_id,`Mantenimiento por ${plan.usage_unit||unit}: ${plan.name}. Lectura registrada: ${reading} ${unit}.`,todayInSantoDomingo()]);
       await client.query('UPDATE plan_assets SET next_usage_due=$1 WHERE plan_id=$2 AND asset_id=$3',[nextDue,plan.plan_id,assetId]);
     }
     await audit(client,user,'REGISTRAR_LECTURA','ACTIVO',assetId,asset.rows[0],{reading,unit,note:input.note||'',scheduledOrders:duePlans.rowCount});
@@ -81,10 +95,13 @@ async function addAssetReading(assetId,input,user) {
 }
 async function addTechnician(input,user) {
   if (!input.name?.trim() || !input.nationalId?.trim() || !input.companyName?.trim()) throw new Error('Nombre, cédula y empresa son obligatorios.');
+  const username=String(input.username||input.name).trim().toLowerCase().replace(/\s+/g,'.');
+  if(!/^[a-z0-9._-]{3,40}$/.test(username))throw new Error('El usuario debe tener entre 3 y 40 caracteres: letras, números, punto, guion o guion bajo.');
+  const passwordHash=await hashPassword(input.temporaryPassword);
   const id=`PP-TECH-${randomUUID()}`;
   const { rows }=await db.query(`INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
-    VALUES($1,$2,$3,$4,$5,$6,'disabled','TECNICO') RETURNING id,username,name,national_id,company_name,role,active`,
-  [id,COMPANY,input.username?.trim()||id,input.name.trim(),input.nationalId.trim(),input.companyName.trim()]);
+    VALUES($1,$2,$3,$4,$5,$6,$7,'TECNICO') RETURNING id,username,name,national_id,company_name,role,active`,
+  [id,COMPANY,username,input.name.trim(),input.nationalId.trim(),input.companyName.trim(),passwordHash]);
   await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state)
     VALUES($1,$2,$3,'CREAR','TECNICO',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);
   return rows[0];
@@ -137,39 +154,39 @@ async function createPlan(input,user) {
   } catch(error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 }
 async function generateScheduledOrders() {
+  const today=todayInSantoDomingo(), horizon=addDays(today,30);
   const plans = await db.query(`SELECT p.*,pa.asset_id FROM maintenance_plans p JOIN plan_assets pa ON pa.plan_id=p.id
-    WHERE p.company_id=$1 AND p.active=true AND p.next_due_at IS NOT NULL AND p.next_due_at <= current_date + 30`,[COMPANY]);
+    WHERE p.company_id=$1 AND p.active=true AND p.next_due_at IS NOT NULL AND p.next_due_at <= $2::date
+      AND (p.interval_days IS NOT NULL OR p.interval_months IS NOT NULL)`,[COMPANY,horizon]);
   for (const plan of plans.rows) {
-    const orderId=`PP-OT-${plan.id}-${plan.asset_id}-${String(plan.next_due_at).replaceAll('-','')}`;
+    let due=dateString(plan.next_due_at);
+    if(due>horizon)continue;
     const {rows:assetRows}=await db.query('SELECT name FROM assets WHERE id=$1',[plan.asset_id]);
-    await db.query(`INSERT INTO work_orders(id,company_id,asset_id,plan_id,kind,description,status,planned_at,technician_id)
-      VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',$6,$7) ON CONFLICT DO NOTHING`,[orderId,COMPANY,plan.asset_id,plan.id,`Mantenimiento programado: ${plan.name}${assetRows[0]?` · ${assetRows[0].name}`:''}`,dateString(plan.next_due_at),plan.assigned_to||null]);
-    const interval=plan.interval_months ? Number(plan.interval_months) : 0;
-    if (interval) {
-      let next=dateString(plan.next_due_at);
-      while (next <= new Date(Date.now()+30*86400000).toISOString().slice(0,10)) next=addMonths(next,interval);
-      if (next!==dateString(plan.next_due_at)) await db.query('UPDATE maintenance_plans SET next_due_at=$1 WHERE id=$2',[next,plan.id]);
-    } else if (plan.interval_days) {
-      const nextDate=new Date(`${dateString(plan.next_due_at)}T12:00:00Z`);
-      while (nextDate.toISOString().slice(0,10) <= new Date(Date.now()+30*86400000).toISOString().slice(0,10)) nextDate.setUTCDate(nextDate.getUTCDate()+Number(plan.interval_days));
-      await db.query('UPDATE maintenance_plans SET next_due_at=$1 WHERE id=$2',[nextDate.toISOString().slice(0,10),plan.id]);
+    while(due<=horizon){
+      const occurrence=due.replaceAll('-','');
+      const orderId=`PP-OT-${plan.id}-${plan.asset_id}-${occurrence}`;
+      await db.query(`INSERT INTO work_orders(id,company_id,asset_id,plan_id,kind,description,status,planned_at,technician_id)
+        VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',$6,$7) ON CONFLICT DO NOTHING`,[orderId,COMPANY,plan.asset_id,plan.id,`Mantenimiento programado: ${plan.name}${assetRows[0]?` · ${assetRows[0].name}`:''}`,due,plan.assigned_to||null]);
+      if(plan.interval_days)due=addDays(due,Number(plan.interval_days));
+      else if(plan.interval_months)due=addMonthsClamped(due,Number(plan.interval_months));
+      else break;
     }
+    if(due!==dateString(plan.next_due_at))await db.query('UPDATE maintenance_plans SET next_due_at=$1 WHERE id=$2',[due,plan.id]);
   }
 }
 async function listOrders(from,to) {
   await generateScheduledOrders();
-  const {rows}=await db.query(`SELECT o.*,a.code asset_code,a.name asset_name,t.name technician_name,p.tasks
+  const {rows}=await db.query(`SELECT o.*,a.code asset_code,a.name asset_name,t.name technician_name,p.tasks,p.category plan_category
     FROM work_orders o JOIN assets a ON a.id=o.asset_id LEFT JOIN technicians t ON t.id=o.technician_id LEFT JOIN maintenance_plans p ON p.id=o.plan_id
     WHERE o.company_id=$1 AND ($2::date IS NULL OR o.planned_at >= $2) AND ($3::date IS NULL OR o.planned_at < $3)
     ORDER BY o.planned_at,a.name`,[COMPANY,from||null,to||null]);
   return rows.map(r=>({...r,tasks:toJson(r.tasks||[]),plannedAt:dateString(r.planned_at),startedAt:r.started_at,completedAt:r.completed_at}));
 }
 async function dashboard() {
-  const now=new Date(),weekEnd=new Date(now); weekEnd.setDate(weekEnd.getDate()+7);
-  const monthEnd=new Date(now); monthEnd.setDate(monthEnd.getDate()+30);
-  const [week,month]=await Promise.all([listOrders(now.toISOString().slice(0,10),weekEnd.toISOString().slice(0,10)),listOrders(now.toISOString().slice(0,10),monthEnd.toISOString().slice(0,10))]);
+  const today=todayInSantoDomingo(),weekEnd=addDays(today,7),monthEnd=addDays(today,30);
+  const [week,month]=await Promise.all([listOrders(today,weekEnd),listOrders(today,monthEnd)]);
   const [{rows:counts},{rows:totals}]=await Promise.all([
-    db.query(`SELECT count(*) FILTER(WHERE status='PROGRAMADA') scheduled,count(*) FILTER(WHERE status='EN PROCESO') in_progress,count(*) FILTER(WHERE status='COMPLETADA') completed,count(*) FILTER(WHERE status NOT IN('COMPLETADA','CANCELADA') AND planned_at<current_date) overdue FROM work_orders WHERE company_id=$1`,[COMPANY]),
+    db.query(`SELECT count(*) FILTER(WHERE status='PROGRAMADA') scheduled,count(*) FILTER(WHERE status='EN PROCESO') in_progress,count(*) FILTER(WHERE status='COMPLETADA') completed,count(*) FILTER(WHERE status NOT IN('COMPLETADA','CANCELADA') AND planned_at<$2::date) overdue FROM work_orders WHERE company_id=$1`,[COMPANY,today]),
     db.query(`SELECT count(*) total,count(*) FILTER(WHERE operational_status='OPERATIVO') operating FROM assets WHERE company_id=$1`,[COMPANY]),
   ]);
   return {counts:counts[0],assets:totals[0],week,month};
@@ -181,29 +198,64 @@ async function listMaintenance() {
 }
 async function completeOrder(input,user) {
   if (!input.orderId) throw new Error('Seleccione una orden programada.');
+  if (!input.technicianId) throw new Error('Seleccione el técnico que realizó el mantenimiento.');
+  const technician=await db.query('SELECT id FROM technicians WHERE company_id=$1 AND id=$2 AND active=true',[COMPANY,input.technicianId]);
+  if(!technician.rowCount)throw new Error('El técnico no pertenece a PrintPilot o está inactivo.');
+  const laborHours=Number(input.laborHours||0),laborCost=Number(input.laborCost||0);
+  if(!Number.isFinite(laborHours)||laborHours<0||!Number.isFinite(laborCost)||laborCost<0)throw new Error('Horas y costo de mano de obra deben ser valores iguales o mayores que cero.');
   const client=await db.pool.connect();
   try {
     await client.query('BEGIN');
     const found=await client.query(`SELECT o.*,p.tasks FROM work_orders o LEFT JOIN maintenance_plans p ON p.id=o.plan_id WHERE o.company_id=$1 AND o.id=$2 FOR UPDATE OF o`,[COMPANY,input.orderId]);
     if (!found.rowCount) throw new Error('No se encontró la orden.');
     const order=found.rows[0],tasks=toJson(order.tasks||[]),checked=Array.isArray(input.checklist)?input.checklist:[];
-    if(order.status==='COMPLETADA')throw new Error('Esta orden ya está completada y registrada en el historial.');
+    if(!['PROGRAMADA','EN PROCESO'].includes(order.status))throw new Error('Solo se puede completar una orden programada o en proceso.');
     const hasIncompleteTasks=tasks.some(task=>{
       const label=typeof task==='string'?task:task.label;
       return !checked.some(done=>done.label===label&&done.done===true);
     });
     if (hasIncompleteTasks) throw new Error('Complete todas las tareas obligatorias de la lista antes de cerrar el mantenimiento.');
+    const usedMaterials=[];let materialsCost=0;
+    for(const item of (Array.isArray(input.materials)?input.materials:[])){
+      const quantity=Number(item.quantity);
+      if(!item.supplyId||!Number.isFinite(quantity)||quantity<=0)throw new Error('Cada material debe tener un insumo y una cantidad mayor que cero.');
+      const supply=await client.query('SELECT * FROM supplies WHERE company_id=$1 AND id=$2 FOR UPDATE',[COMPANY,item.supplyId]);
+      if(!supply.rowCount)throw new Error('Uno de los insumos seleccionados no pertenece a PrintPilot.');
+      const row=supply.rows[0],available=Number(row.quantity),unitCost=Number(row.unit_cost||0);
+      if(available<quantity)throw new Error(`Existencia insuficiente de ${row.name}: disponible ${available} ${row.unit}.`);
+      await client.query('UPDATE supplies SET quantity=quantity-$1,updated_at=now() WHERE id=$2',[quantity,row.id]);
+      await client.query(`INSERT INTO supply_movements(id,company_id,supply_id,movement_type,quantity,unit_cost,technician_id,note)
+        VALUES($1,$2,$3,'CONSUMO',$4,$5,$6,$7)`,[`PP-MV-${randomUUID()}`,COMPANY,row.id,quantity,unitCost,input.technicianId,`Mantenimiento ${input.orderId}`]);
+      const cost=quantity*unitCost;materialsCost+=cost;usedMaterials.push({supplyId:row.id,name:row.name,quantity,unit:row.unit,unitCost,cost});
+    }
+    const totalCost=laborCost+materialsCost;
     const id=`PP-MT-${randomUUID()}`;
-    const values=[id,COMPANY,input.orderId,order.asset_id,order.plan_id,order.kind,'COMPLETADA',order.planned_at,input.startedAt||null,new Date().toISOString(),actorId(user),JSON.stringify(checked),input.observations||'',input.findings||'',input.recommendations||'',JSON.stringify(input.materials||[]),Number(input.laborHours||0),Number(input.laborCost||0),Number(input.totalCost||0),input.description||order.description];
+    const values=[id,COMPANY,input.orderId,order.asset_id,order.plan_id,order.kind,'COMPLETADA',order.planned_at,input.startedAt||null,new Date().toISOString(),input.technicianId,JSON.stringify(checked),input.observations||'',input.findings||'',input.recommendations||'',JSON.stringify(usedMaterials),laborHours,laborCost,totalCost,input.description||order.description];
     const {rows}=await client.query(`INSERT INTO maintenance_records(id,company_id,work_order_id,asset_id,plan_id,kind,status,planned_at,started_at,completed_at,technician_id,checklist,observations,findings,recommendations,materials,labor_hours,labor_cost,total_cost,description)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16::jsonb,$17,$18,$19,$20) RETURNING *`,values);
-    await client.query("UPDATE work_orders SET status='COMPLETADA',completed_at=now(),started_at=COALESCE(started_at,$1),technician_id=$2 WHERE id=$3",[input.startedAt||new Date().toISOString(),actorId(user),input.orderId]);
+    await client.query("UPDATE work_orders SET status='COMPLETADA',completed_at=now(),started_at=COALESCE(started_at,$1),technician_id=$2 WHERE id=$3",[input.startedAt||new Date().toISOString(),input.technicianId,input.orderId]);
     await audit(client,user,'COMPLETAR','MANTENIMIENTO',id,null,rows[0]);
     await client.query('COMMIT'); return rows[0];
   } catch(error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 }
+async function changeOrderStatus(id,status,user) {
+  if(!ORDER_STATUSES.includes(status))throw new Error(`Estado no válido. Use: ${ORDER_STATUSES.join(', ')}.`);
+  const client=await db.pool.connect();
+  try{
+    await client.query('BEGIN');
+    const {rows}=await client.query('SELECT * FROM work_orders WHERE company_id=$1 AND id=$2 FOR UPDATE',[COMPANY,id]);
+    if(!rows.length){await client.query('ROLLBACK');return null;}
+    const before=rows[0];
+    const valid=(status==='EN PROCESO'&&before.status==='PROGRAMADA')||(status==='CANCELADA'&&['PROGRAMADA','EN PROCESO'].includes(before.status));
+    if(!valid)throw new Error(`No se puede cambiar ${before.status} a ${status}.`);
+    const {rows:updated}=await client.query(`UPDATE work_orders SET status=$1,started_at=CASE WHEN $1='EN PROCESO' THEN COALESCE(started_at,now()) ELSE started_at END WHERE id=$2 AND company_id=$3 RETURNING *`,[status,id,COMPANY]);
+    await audit(client,user,status==='EN PROCESO'?'INICIAR':'CANCELAR','ORDEN',id,before,updated[0]);
+    await client.query('COMMIT');return updated[0];
+  }catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}
+}
 async function createCountermeasure(input,user) {
   if (!input.assetId || !input.title?.trim() || !input.issue?.trim()) throw new Error('Activo, título y hallazgo son obligatorios.');
+  validateCountermeasureValues(input);
   const asset=await db.query('SELECT 1 FROM assets WHERE company_id=$1 AND id=$2',[COMPANY,input.assetId]);if(!asset.rowCount)throw new Error('El activo no pertenece a PrintPilot.');
   if(input.technicianId&&!(await db.query('SELECT 1 FROM technicians WHERE company_id=$1 AND id=$2',[COMPANY,input.technicianId])).rowCount)throw new Error('El técnico no pertenece a PrintPilot.');
   const id=`PP-CM-${randomUUID()}`;
@@ -218,6 +270,7 @@ async function listCountermeasures() {
   return rows.map(r=>({...r,parts:toJson(r.parts),checklist:toJson(r.checklist)}));
 }
 async function updateCountermeasure(id,input,user) {
+  validateCountermeasureValues(input);
   const editable=['status','priority','rootCause','actionTaken','electronicChanges','parts','checklist','technicianId','provider','plannedAt','startedAt','completedAt','laborHours','laborCost','partsCost','totalCost','notes'];
   const columns={rootCause:'root_cause',actionTaken:'action_taken',electronicChanges:'electronic_changes',technicianId:'technician_id',plannedAt:'planned_at',startedAt:'started_at',completedAt:'completed_at',laborHours:'labor_hours',laborCost:'labor_cost',partsCost:'parts_cost',totalCost:'total_cost'};
   const before=await db.query('SELECT * FROM countermeasures WHERE company_id=$1 AND id=$2',[COMPANY,id]);
@@ -287,12 +340,18 @@ async function addDocument(input,user) {
 }
 async function documentContent(id) { const {rows}=await db.query('SELECT original_filename,mime_type,contents FROM documents WHERE company_id=$1 AND id=$2',[COMPANY,id]);return rows[0]||null; }
 async function report(filters={}) {
-  const {rows}=await db.query(`SELECT m.id,m.kind,m.status,m.planned_at,m.started_at,m.completed_at,m.total_cost,m.labor_hours,m.description,a.code asset_code,a.name asset_name,a.category,a.location,t.name technician_name
-    FROM maintenance_records m JOIN assets a ON a.id=m.asset_id LEFT JOIN technicians t ON t.id=m.technician_id
-    WHERE m.company_id=$1 AND ($2::text IS NULL OR a.id=$2) AND ($3::date IS NULL OR COALESCE(m.completed_at::date,m.planned_at)>= $3)
-    AND ($4::date IS NULL OR COALESCE(m.completed_at::date,m.planned_at)<= $4) AND ($5::text IS NULL OR t.id=$5) AND ($6::text IS NULL OR m.kind=$6)
-    ORDER BY COALESCE(m.completed_at::date,m.planned_at) DESC NULLS LAST`,[COMPANY,filters.assetId||null,filters.from||null,filters.to||null,filters.technicianId||null,filters.kind||null]);return rows;
+  const {rows}=await db.query(`SELECT * FROM (
+      SELECT m.id,m.kind,m.status,m.planned_at,m.started_at,m.completed_at,m.total_cost,m.labor_hours,m.description,a.id asset_id,a.code asset_code,a.name asset_name,a.category,a.location,t.id technician_id,t.name technician_name
+      FROM maintenance_records m JOIN assets a ON a.id=m.asset_id LEFT JOIN technicians t ON t.id=m.technician_id WHERE m.company_id=$1
+      UNION ALL
+      SELECT c.id,'CORRECTIVO' kind,c.status,c.planned_at,c.started_at,c.completed_at,c.total_cost,c.labor_hours,
+        concat_ws(' · ',c.title,c.issue,c.action_taken) description,a.id asset_id,a.code asset_code,a.name asset_name,a.category,a.location,t.id technician_id,t.name technician_name
+      FROM countermeasures c JOIN assets a ON a.id=c.asset_id LEFT JOIN technicians t ON t.id=c.technician_id WHERE c.company_id=$1
+    ) report_rows
+    WHERE ($2::text IS NULL OR asset_id=$2) AND ($3::date IS NULL OR COALESCE(completed_at::date,planned_at)>= $3)
+      AND ($4::date IS NULL OR COALESCE(completed_at::date,planned_at)<= $4) AND ($5::text IS NULL OR technician_id=$5) AND ($6::text IS NULL OR kind=$6)
+    ORDER BY COALESCE(completed_at::date,planned_at) DESC NULLS LAST`,[COMPANY,filters.assetId||null,filters.from||null,filters.to||null,filters.technicianId||null,filters.kind||null]);return rows;
 }
 async function auditLog() { return (await db.query('SELECT id,actor_name,action,entity_type,entity_id,before_state,after_state,created_at FROM audit_log WHERE company_id=$1 ORDER BY created_at DESC LIMIT 300',[COMPANY])).rows; }
 
-module.exports = { COMPANY,CATEGORIES,listAssets,addAsset,updateAsset,listAssetReadings,addAssetReading,listTechnicians,addTechnician,updateTechnician,listPlans,createPlan,listOrders,dashboard,listMaintenance,completeOrder,createCountermeasure,listCountermeasures,updateCountermeasure,listSupplies,recordSupplyMovement,requestPurchase,supplyMovements,documents,addDocument,documentContent,report,auditLog };
+module.exports = { COMPANY,CATEGORIES,listAssets,addAsset,updateAsset,listAssetReadings,addAssetReading,listTechnicians,addTechnician,updateTechnician,listPlans,createPlan,listOrders,changeOrderStatus,dashboard,listMaintenance,completeOrder,createCountermeasure,listCountermeasures,updateCountermeasure,listSupplies,recordSupplyMovement,requestPurchase,supplyMovements,documents,addDocument,documentContent,report,auditLog,hashPassword };
