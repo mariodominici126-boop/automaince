@@ -28,8 +28,10 @@ test('PrintPilot cumple la fase 1 en PostgreSQL local de pruebas', { skip: !proc
     assert.ok((await service.listOrders()).some(order=>order.plan_id===usagePlan.id));
 
     const firstOrder=weeklyOrders[0];
+    const beforeInProgress=Number((await service.dashboard()).counts.in_progress);
     await service.changeOrderStatus(firstOrder.id,'EN PROCESO',admin);
     assert.equal((await service.listOrders()).find(order=>order.id===firstOrder.id).status,'EN PROCESO');
+    assert.equal(Number((await service.dashboard()).counts.in_progress),beforeInProgress+1,'El contador del panel debe subir al iniciar una orden.');
     await service.changeOrderStatus(firstOrder.id,'CANCELADA',admin);
     assert.equal((await service.listOrders()).find(order=>order.id===firstOrder.id).status,'CANCELADA');
 

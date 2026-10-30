@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.js",
     "test": "node --env-file-if-exists=.env --test tests/*.test.js",
-    "test:integration": "node --env-file-if-exists=.env --test tests/phase0.integration.test.js",
+    "test:integration": "node --env-file-if-exists=.env --test-concurrency=1 tests/phase0.integration.test.js tests/phase1.integration.test.js",
     "db:reset": "node --env-file-if-exists=.env scripts/db-reset.js",
     "demo:printpilot": "node --env-file-if-exists=.env scripts/demo-printpilot.js"
   },

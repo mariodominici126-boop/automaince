@@ -56,16 +56,18 @@ npm run demo:printpilot
 
 El guion crea un plan, genera una orden, completa el mantenimiento con su checklist, registra una contramedida, adjunta y vuelve a abrir **Factura reparación.pdf** y **Señal.png**, agrega 10 unidades de tinta, consume 2 y genera un informe. Actualiza el navegador para ver los registros. El guion añade datos de demostración a la base; vuelve a ejecutar `npm run db:reset` para empezar desde cero.
 
-### Verificación de integración opcional
+### Verificar Fase 1
 
-Las pruebas unitarias de fase 0 se ejecutan con `npm test`. Para comprobar también el flujo completo contra PostgreSQL, crea una base separada llamada `automaince_test` (nunca uses la base de trabajo) y en PowerShell configura:
+`npm test` ejecuta las verificaciones rápidas sin conectarse a PostgreSQL. Para probar también los flujos completos, crea en pgAdmin una base separada llamada `automaince_test` y asígnale como propietario el usuario `automaince`. No apuntes las pruebas a la base de trabajo `automaince`.
+
+En PowerShell, desde la carpeta del proyecto, define la conexión. Si la contraseña local no es `automaince_dev`, reemplázala por la que configuraste para PostgreSQL:
 
 ```powershell
-$env:PRINTPILOT_TEST_DATABASE_URL = "postgresql://automaince:automaince_dev@127.0.0.1:5432/automaince_test"
+$env:PRINTPILOT_TEST_DATABASE_URL = "postgresql://automaince:TU_CONTRASENA@127.0.0.1:5432/automaince_test"
 npm run test:integration
 ```
 
-La prueba usa únicamente esa base local separada y conserva sus datos de demostración.
+Las pruebas de integración usan únicamente esa base local separada. Cubren las cinco órdenes semanales, el plan por horas, inicio/cancelación y contador del panel, contramedidas en informes, consumo/costo de insumos, inicio de sesión de técnicos y rechazo de estados no permitidos. También agregan registros de prueba a `automaince_test`; no reinician ni borran su contenido.
 
 ## Ver la base de datos
 
