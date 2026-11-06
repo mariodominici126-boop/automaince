@@ -13,6 +13,7 @@ const nodeGlobals = Object.fromEntries(
     'setInterval',
     'setTimeout',
     'URL',
+    'URLSearchParams',
   ].map((name) => [name, 'readonly']),
 );
 

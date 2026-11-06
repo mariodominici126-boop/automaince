@@ -15,6 +15,7 @@ test(
     );
     process.env.DATABASE_URL = process.env.PRINTPILOT_TEST_DATABASE_URL;
     const repository = require('../database/adapters/postgresRepository');
+    const printpilot = require('../backend/companies/printpilot/service');
     const { runDemo } = require('../scripts/demo-printpilot');
     try {
       await repository.initialize();
@@ -39,6 +40,9 @@ test(
           (row) => row.id === result.countermeasure.id && row.kind === 'CORRECTIVO',
         ),
       );
+      const correctiveReport = await printpilot.report({ kind: 'CORRECTIVO' });
+      assert.ok(correctiveReport.some((row) => row.id === result.countermeasure.id));
+      assert.ok(correctiveReport.every((row) => row.kind === 'CORRECTIVO'));
       assert.ok(Number(result.ink.quantity) >= 8);
     } finally {
       await repository.close();
