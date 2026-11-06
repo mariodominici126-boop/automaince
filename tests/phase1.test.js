@@ -1,6 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { todayInSantoDomingo, addMonthsClamped, addDays } = require('../backend/companies/printpilot/dateUtils');
+const {
+  todayInSantoDomingo,
+  addMonthsClamped,
+  addDays,
+} = require('../backend/companies/printpilot/dateUtils');
 const service = require('../backend/companies/printpilot/service');
 
 test('F1-2: sumar un mes al 31 de enero limita el día al último de febrero', () => {
@@ -18,8 +22,16 @@ test('F1-1: suma días sin depender de UTC local', () => {
 
 test('F1-9: rechaza estados y prioridades inventados con una explicación', async () => {
   await assert.rejects(
-    service.createCountermeasure({assetId:'PP-TEST',title:'Prueba',issue:'Hallazgo',status:'LO QUE SEA'}),
+    service.createCountermeasure({
+      assetId: 'PP-TEST',
+      title: 'Prueba',
+      issue: 'Hallazgo',
+      status: 'LO QUE SEA',
+    }),
     /Estado no válido.*PENDIENTE/,
   );
-  await assert.rejects(service.updateCountermeasure('PP-TEST',{priority:'URGENTE'}),/Prioridad no válida.*BAJA/);
+  await assert.rejects(
+    service.updateCountermeasure('PP-TEST', { priority: 'URGENTE' }),
+    /Prioridad no válida.*BAJA/,
+  );
 });

@@ -35,9 +35,22 @@ Usuario: emmanuel
 Contraseña temporal: PP-Emmanuel-2026!
 ```
 
-La primera ejecución crea el esquema y los 19 activos del inventario PDF. La contraseña se conserva en PostgreSQL como hash scrypt con sal aleatoria, nunca en texto plano. El campo de cédula de esta cuenta queda pendiente; los técnicos nuevos deben registrar nombre, cédula y empresa.
+La primera ejecución crea el esquema y carga los 19 activos del inventario PDF. PostgreSQL guarda la información en el equipo y se inicia por separado del servidor web. La contraseña provisional se guarda como hash scrypt con sal, nunca en texto plano. El archivo SQLite anterior se conserva, pero sus datos no se transfieren automáticamente.
 
-La primera ejecución crea el esquema y carga los datos iniciales en PostgreSQL. El servicio PostgreSQL de Windows guarda la base localmente y se inicia por separado del servidor web. El archivo SQLite anterior no se borra, pero sus datos no se transfieren automáticamente; guarda una copia antes de cambiar de base.
+### Variables de configuración (`.env`)
+
+| Variable                             | Para qué sirve                                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                       | Conexión PostgreSQL usada por la aplicación. En local apunta a `127.0.0.1:5432/automaince`; en alojamiento se configura como secreto del servicio. |
+| `PGSSLMODE`                          | Usa `require` si el proveedor PostgreSQL exige conexión TLS; déjala vacía para PostgreSQL local.                                                   |
+| `PGPOOL_SIZE`                        | Máximo de conexiones simultáneas del servidor a PostgreSQL; por defecto, 10.                                                                       |
+| `HOST`                               | Interfaz de red donde escucha la aplicación. El valor de ejemplo es solo para acceso local.                                                        |
+| `PORT`                               | Puerto web; por defecto, 3000. El alojamiento puede asignarlo automáticamente.                                                                     |
+| `GMAIL_USER`                         | Cuenta Gmail remitente para solicitudes de compra de gas.                                                                                          |
+| `GMAIL_APP_PASSWORD`                 | Contraseña de aplicación de Gmail del remitente. Guárdala solo en `.env` o como secreto del alojamiento.                                           |
+| `MAIL_FROM`                          | Dirección visible opcional para los correos; si está vacía, usa `GMAIL_USER`.                                                                      |
+| `PURCHASE_EMAIL`                     | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                     |
+| `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD` | Credenciales provisionales del módulo de demostración GTG.                                                                                         |
 
 ## Preparar una demo limpia de PrintPilot
 
@@ -58,20 +71,20 @@ El guion crea un plan, genera una orden, completa el mantenimiento con su checkl
 
 ### Verificar Fase 1
 
-`npm test` ejecuta las verificaciones rápidas sin conectarse a PostgreSQL. Para probar también los flujos completos, crea en pgAdmin una base separada llamada `automaince_test` y asígnale como propietario el usuario `automaince`. No apuntes las pruebas a la base de trabajo `automaince`.
+`npm test` ejecuta las verificaciones automatizadas. Si está definida `PRINTPILOT_TEST_DATABASE_URL`, incluye también los flujos completos de PostgreSQL. Para ejecutarlos localmente, crea en pgAdmin una base separada llamada `automaince_test` y asígnale como propietario el usuario `automaince`. No apuntes las pruebas a la base de trabajo `automaince` ni a Neon.
 
-En PowerShell, desde la carpeta del proyecto, define la conexión. Si la contraseña local no es `automaince_dev`, reemplázala por la que configuraste para PostgreSQL:
+En CMD, desde la carpeta del proyecto, define la conexión con la contraseña local que configuraste para PostgreSQL. La variable solo existe en esa ventana de terminal:
 
-```powershell
-$env:PRINTPILOT_TEST_DATABASE_URL = "postgresql://automaince:TU_CONTRASENA@127.0.0.1:5432/automaince_test"
+```cmd
+set "PRINTPILOT_TEST_DATABASE_URL=postgresql://automaince:TU_CONTRASENA@127.0.0.1:5432/automaince_test"
 npm run test:integration
 ```
 
-Las pruebas de integración usan únicamente esa base local separada. Cubren las cinco órdenes semanales, el plan por horas, inicio/cancelación y contador del panel, contramedidas en informes, consumo/costo de insumos, inicio de sesión de técnicos y rechazo de estados no permitidos. También agregan registros de prueba a `automaince_test`; no reinician ni borran su contenido.
+Las pruebas usan únicamente esa base local separada. Cubren la demo de mantenimiento, cinco órdenes semanales, planes por horas, inicio/cancelación y contador del panel, contramedidas en informes, consumo y costos de insumos, inicio de sesión de técnicos y rechazo de estados no permitidos. Agregan registros de prueba a `automaince_test`; no reinician ni borran su contenido.
 
 ## Ver la base de datos
 
-Abre pgAdmin 4 y conéctate al servidor local con el usuario `automaince` y la contraseña `automaince_dev`. En el árbol, abre **Databases → automaince → Schemas → public → Tables**. Las tablas aparecen después del primer inicio correcto del servidor AutoMaince.
+Abre pgAdmin 4 y conéctate al servidor PostgreSQL local con el usuario y la contraseña que configuraste. En el árbol, abre **Databases → automaince → Schemas → public → Tables**. Las tablas aparecen después del primer inicio correcto del servidor AutoMaince.
 
 ## Gmail para Compras
 
@@ -105,15 +118,15 @@ npm test
 
 ## Fase 2 · Seguridad y solidez (PrintPilot)
 
-| Rol | Permisos |
-| --- | --- |
-| Administrador | Todas las operaciones, incluida la gestión de activos, planes, técnicos y bitácora. |
-| Técnico | Consulta de operaciones e informes; puede registrar lecturas, mantenimientos, contramedidas, movimientos de insumos y documentos. No puede administrar activos, planes, técnicos, compras ni consultar la bitácora. |
+| Rol           | Permisos                                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Administrador | Todas las operaciones, incluida la gestión de activos, planes, técnicos y bitácora.                                                                                                                                 |
+| Técnico       | Consulta de operaciones e informes; puede registrar lecturas, mantenimientos, contramedidas, movimientos de insumos y documentos. No puede administrar activos, planes, técnicos, compras ni consultar la bitácora. |
 
 Los permisos se validan en el servidor. Los códigos de activos admiten únicamente letras, números y guiones; las acciones de filas usan `data-id` y eventos delegados, sin insertar identificadores en código JavaScript. Tras cinco intentos fallidos de inicio de sesión, el siguiente intento queda bloqueado por 15 minutos. Las sesiones se conservan en PostgreSQL durante ocho horas y el flujo de eventos las autentica con la cabecera `Authorization`.
 
 Las escrituras auditadas guardan el cambio y la bitácora dentro de la misma transacción. Las órdenes preventivas se generan cuando inicia el servidor y luego cada hora; consultar el panel o la agenda ya no cambia datos.
 
-`npm test` incluye pruebas de seguridad sin necesidad de PostgreSQL. Las dos pruebas de integración existentes se ejecutan solo cuando está configurada `PRINTPILOT_TEST_DATABASE_URL` y ambas requieren la base local aislada `automaince_test`.
+`npm test` incluye pruebas de seguridad. Las pruebas que escriben en PostgreSQL requieren que `PRINTPILOT_TEST_DATABASE_URL` apunte a la base local aislada `automaince_test`.
 
 La aplicación no contiene ni expone la contraseña de correo. No subas `.env` al repositorio.

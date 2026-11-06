@@ -5,10 +5,13 @@
   "description": "Sistema web de mantenimiento y operación para equipos de PrintPilot y flotas empresariales",
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.js",
-    "test": "node --env-file-if-exists=.env --test tests/*.test.js",
-    "test:integration": "node --env-file-if-exists=.env --test-concurrency=1 tests/phase0.integration.test.js tests/phase1.integration.test.js",
+    "test": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/*.test.js",
+    "test:integration": "node --env-file-if-exists=.env --test tests/phase0.integration.test.js && node --env-file-if-exists=.env --test tests/phase1.integration.test.js",
     "db:reset": "node --env-file-if-exists=.env scripts/db-reset.js",
-    "demo:printpilot": "node --env-file-if-exists=.env scripts/demo-printpilot.js"
+    "demo:printpilot": "node --env-file-if-exists=.env scripts/demo-printpilot.js",
+    "lint": "eslint backend/server.js backend/companies/printpilot frontend/companies/printpilot frontend/utils/app.js tests",
+    "format": "prettier --write backend/server.js backend/companies/printpilot frontend/companies/printpilot frontend/utils/app.js frontend/index.html tests eslint.config.js README.md package.json",
+    "format:check": "prettier --check backend/server.js backend/companies/printpilot frontend/companies/printpilot frontend/utils/app.js frontend/index.html tests eslint.config.js README.md package.json"
   },
   "engines": {
     "node": ">=22"
@@ -16,5 +19,9 @@
   "dependencies": {
     "nodemailer": "^10.0.16",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10"
   }
 }

@@ -21,176 +21,440 @@ const frontendRoot = path.join(root, 'frontend');
 const sessionLifetimeMs = 8 * 60 * 60 * 1000;
 const eventClients = new Map();
 const loginAttempts = new Map();
-const rateWindowMs=15*60*1000, maxLoginFailures=5;
+const rateWindowMs = 15 * 60 * 1000,
+  maxLoginFailures = 5;
 
 async function companyData(companyId) {
-  const entries=await Promise.all(repository.collections.map(async name=>[name,await repository.list(name,companyId)]));
+  const entries = await Promise.all(
+    repository.collections.map(async (name) => [name, await repository.list(name, companyId)]),
+  );
   return Object.fromEntries(entries);
 }
 function tokenFrom(req) {
-  const bearer=req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
-  return bearer||null;
+  const bearer = req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  return bearer || null;
 }
-const tokenHash=token=>createHash('sha256').update(token).digest('hex');
+const tokenHash = (token) => createHash('sha256').update(token).digest('hex');
 async function getSession(req) {
-  const token=tokenFrom(req); if(!token)return null;
-  const {rows}=await repository.query('SELECT company_id,user_payload,expires_at FROM user_sessions WHERE token_hash=$1 AND expires_at>now()',[tokenHash(token)]);
-  if(!rows.length){await repository.query('DELETE FROM user_sessions WHERE token_hash=$1 OR expires_at<=now()',[tokenHash(token)]);return null;}
-  return {companyId:rows[0].company_id,user:typeof rows[0].user_payload==='string'?JSON.parse(rows[0].user_payload):rows[0].user_payload,expiresAt:rows[0].expires_at};
+  const token = tokenFrom(req);
+  if (!token) return null;
+  const { rows } = await repository.query(
+    'SELECT company_id,user_payload,expires_at FROM user_sessions WHERE token_hash=$1 AND expires_at>now()',
+    [tokenHash(token)],
+  );
+  if (!rows.length) {
+    await repository.query('DELETE FROM user_sessions WHERE token_hash=$1 OR expires_at<=now()', [
+      tokenHash(token),
+    ]);
+    return null;
+  }
+  return {
+    companyId: rows[0].company_id,
+    user:
+      typeof rows[0].user_payload === 'string'
+        ? JSON.parse(rows[0].user_payload)
+        : rows[0].user_payload,
+    expiresAt: rows[0].expires_at,
+  };
 }
-function loginRateLimit(req,company,username){
-  const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||req.socket.remoteAddress||'unknown';
-  const key=`${ip}:${company}:${String(username||'').trim().toLowerCase()}`;
-  const now=Date.now(),attempt=loginAttempts.get(key)||{failures:[],blockedUntil:0};
-  attempt.failures=attempt.failures.filter(time=>now-time<rateWindowMs);
-  if(attempt.blockedUntil>now)return Math.ceil((attempt.blockedUntil-now)/1000);
-  if(attempt.failures.length>=maxLoginFailures){attempt.blockedUntil=now+rateWindowMs;loginAttempts.set(key,attempt);return Math.ceil(rateWindowMs/1000);}
-  loginAttempts.set(key,attempt);return 0;
+function loginRateLimit(req, company, username) {
+  const ip =
+    String(req.headers['x-forwarded-for'] || '')
+      .split(',')[0]
+      .trim() ||
+    req.socket.remoteAddress ||
+    'unknown';
+  const key = `${ip}:${company}:${String(username || '')
+    .trim()
+    .toLowerCase()}`;
+  const now = Date.now(),
+    attempt = loginAttempts.get(key) || { failures: [], blockedUntil: 0 };
+  attempt.failures = attempt.failures.filter((time) => now - time < rateWindowMs);
+  if (attempt.blockedUntil > now) return Math.ceil((attempt.blockedUntil - now) / 1000);
+  if (attempt.failures.length >= maxLoginFailures) {
+    attempt.blockedUntil = now + rateWindowMs;
+    loginAttempts.set(key, attempt);
+    return Math.ceil(rateWindowMs / 1000);
+  }
+  loginAttempts.set(key, attempt);
+  return 0;
 }
-function recordLogin(req,company,username,success){
-  const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||req.socket.remoteAddress||'unknown';
-  const key=`${ip}:${company}:${String(username||'').trim().toLowerCase()}`;
-  if(success){loginAttempts.delete(key);return;}
-  const attempt=loginAttempts.get(key)||{failures:[],blockedUntil:0};
-  attempt.failures=attempt.failures.filter(time=>Date.now()-time<rateWindowMs);attempt.failures.push(Date.now());
-  if(attempt.failures.length>=maxLoginFailures)attempt.blockedUntil=Date.now()+rateWindowMs;
-  loginAttempts.set(key,attempt);
+function recordLogin(req, company, username, success) {
+  const ip =
+    String(req.headers['x-forwarded-for'] || '')
+      .split(',')[0]
+      .trim() ||
+    req.socket.remoteAddress ||
+    'unknown';
+  const key = `${ip}:${company}:${String(username || '')
+    .trim()
+    .toLowerCase()}`;
+  if (success) {
+    loginAttempts.delete(key);
+    return;
+  }
+  const attempt = loginAttempts.get(key) || { failures: [], blockedUntil: 0 };
+  attempt.failures = attempt.failures.filter((time) => Date.now() - time < rateWindowMs);
+  attempt.failures.push(Date.now());
+  if (attempt.failures.length >= maxLoginFailures) attempt.blockedUntil = Date.now() + rateWindowMs;
+  loginAttempts.set(key, attempt);
 }
-function safeError(error){
-  const messages={'23505':'Ya existe un registro con esos datos.','23503':'No se puede guardar porque un registro relacionado ya no existe.','23514':'Uno o más valores no cumplen las reglas permitidas.','23502':'Falta completar un dato obligatorio.','22P02':'Uno de los datos tiene un formato no válido.','22007':'La fecha tiene un formato no válido.','22003':'Uno de los números está fuera del rango permitido.',ECONNREFUSED:'No se pudo conectar con la base de datos. Verifica que esté iniciada.',ENOTFOUND:'No se encontró el servidor de base de datos.',BODY_TOO_LARGE:'El archivo o solicitud supera 12 MB.',MAIL_NOT_CONFIGURED:error.message,MAIL_SEND_FAILED:error.message};
-  if(messages[error.code])return messages[error.code];
-  if(error.code==='42703'||error.code==='42P01'||/^\d{5}$/.test(String(error.code||'')))return 'Ocurrió un problema interno al guardar. Contacta al administrador.';
-  return error.message||'No se pudo completar la operación.';
+function safeError(error) {
+  const messages = {
+    23505: 'Ya existe un registro con esos datos.',
+    23503: 'No se puede guardar porque un registro relacionado ya no existe.',
+    23514: 'Uno o más valores no cumplen las reglas permitidas.',
+    23502: 'Falta completar un dato obligatorio.',
+    '22P02': 'Uno de los datos tiene un formato no válido.',
+    22007: 'La fecha tiene un formato no válido.',
+    22003: 'Uno de los números está fuera del rango permitido.',
+    ECONNREFUSED: 'No se pudo conectar con la base de datos. Verifica que esté iniciada.',
+    ENOTFOUND: 'No se encontró el servidor de base de datos.',
+    BODY_TOO_LARGE: 'El archivo o solicitud supera 12 MB.',
+    MAIL_NOT_CONFIGURED: error.message,
+    MAIL_SEND_FAILED: error.message,
+  };
+  if (messages[error.code]) return messages[error.code];
+  if (error.code === '42703' || error.code === '42P01' || /^\d{5}$/.test(String(error.code || '')))
+    return 'Ocurrió un problema interno al guardar. Contacta al administrador.';
+  return error.message || 'No se pudo completar la operación.';
 }
 function publishChange(companyId) {
-  for(const [client,clientCompany] of eventClients)if(clientCompany===companyId)client.write('event: data-changed\ndata: {}\n\n');
+  for (const [client, clientCompany] of eventClients)
+    if (clientCompany === companyId) client.write('event: data-changed\ndata: {}\n\n');
 }
-const json=(res,status,payload)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(payload));};
-const parseBody=req=>new Promise((resolve,reject)=>{
-  let raw='',length=0;
-  req.on('data',chunk=>{length+=chunk.length;if(length>12*1024*1024){reject(Object.assign(new Error('El archivo o solicitud supera 12 MB.'),{code:'BODY_TOO_LARGE'}));req.destroy();return;}raw+=chunk;});
-  req.on('end',()=>{try{resolve(raw?JSON.parse(raw):{});}catch{reject(new Error('JSON inválido.'));}});
-  req.on('error',reject);
-});
-function serve(res,file) {
-  const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.webp':'image/webp','.woff':'font/woff','.woff2':'font/woff2'};
-  fs.readFile(file,(error,content)=>{if(error)return json(res,404,{error:'Archivo no encontrado.'});res.writeHead(200,{'Content-Type':types[path.extname(file).toLowerCase()]||'text/plain'});res.end(content);});
+const json = (res, status, payload) => {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(JSON.stringify(payload));
+};
+const parseBody = (req) =>
+  new Promise((resolve, reject) => {
+    let raw = '',
+      length = 0;
+    req.on('data', (chunk) => {
+      length += chunk.length;
+      if (length > 12 * 1024 * 1024) {
+        reject(
+          Object.assign(new Error('El archivo o solicitud supera 12 MB.'), {
+            code: 'BODY_TOO_LARGE',
+          }),
+        );
+        req.destroy();
+        return;
+      }
+      raw += chunk;
+    });
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        reject(new Error('JSON inválido.'));
+      }
+    });
+    req.on('error', reject);
+  });
+function serve(res, file) {
+  const types = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+  };
+  fs.readFile(file, (error, content) => {
+    if (error) return json(res, 404, { error: 'Archivo no encontrado.' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(file).toLowerCase()] || 'text/plain' });
+    res.end(content);
+  });
 }
 function resolveFrontendFile(urlPath) {
   let decodedPath;
-  try { decodedPath=decodeURIComponent(urlPath); } catch { return null; }
-  if(decodedPath==='/')return path.join(frontendRoot,'index.html');
-  if(!decodedPath.startsWith('/frontend/'))return null;
-  const file=path.resolve(frontendRoot,decodedPath.slice('/frontend/'.length));
-  return file.startsWith(`${frontendRoot}${path.sep}`)?file:null;
+  try {
+    decodedPath = decodeURIComponent(urlPath);
+  } catch {
+    return null;
+  }
+  if (decodedPath === '/') return path.join(frontendRoot, 'index.html');
+  if (!decodedPath.startsWith('/frontend/')) return null;
+  const file = path.resolve(frontendRoot, decodedPath.slice('/frontend/'.length));
+  return file.startsWith(`${frontendRoot}${path.sep}`) ? file : null;
 }
-async function detail(item,data,companyId) {
-  return {...item,maintenance:data.maintenance.filter(x=>x.vehicleId===item.id),fuel:data.fuel.filter(x=>x.vehicleId===item.id),repairs:data.repairs.filter(x=>x.vehicleId===item.id),documents:data.documents.filter(x=>x.vehicleId===item.id),orders:(await orders.list(companyId)).filter(x=>x.vehicleId===item.id),risk:risk(item,data)};
+async function detail(item, data, companyId) {
+  return {
+    ...item,
+    maintenance: data.maintenance.filter((x) => x.vehicleId === item.id),
+    fuel: data.fuel.filter((x) => x.vehicleId === item.id),
+    repairs: data.repairs.filter((x) => x.vehicleId === item.id),
+    documents: data.documents.filter((x) => x.vehicleId === item.id),
+    orders: (await orders.list(companyId)).filter((x) => x.vehicleId === item.id),
+    risk: risk(item, data),
+  };
 }
-function vehicle(input,data) {
-  if(!input.plate?.trim()||!input.brand?.trim()||!input.model?.trim())throw new Error('Placa, marca y modelo son obligatorios.');
-  if(!Number.isInteger(Number(input.year))||Number(input.year)<1950||Number(input.year)>new Date().getFullYear()+1)throw new Error('El año no es válido.');
-  if(data.vehicles.some(item=>item.plate.toLowerCase()===input.plate.trim().toLowerCase()))throw new Error('Ya existe un vehículo con esa placa.');
-  return {id:`V-${String(data.vehicles.length+1).padStart(3,'0')}`,status:'Activo',mileage:0,failures:0,downtime:0,monthlyCost:0,baseConsumption:0,recentConsumption:0,...input,plate:input.plate.trim(),year:Number(input.year)};
+function vehicle(input, data) {
+  if (!input.plate?.trim() || !input.brand?.trim() || !input.model?.trim())
+    throw new Error('Placa, marca y modelo son obligatorios.');
+  if (
+    !Number.isInteger(Number(input.year)) ||
+    Number(input.year) < 1950 ||
+    Number(input.year) > new Date().getFullYear() + 1
+  )
+    throw new Error('El año no es válido.');
+  if (data.vehicles.some((item) => item.plate.toLowerCase() === input.plate.trim().toLowerCase()))
+    throw new Error('Ya existe un vehículo con esa placa.');
+  return {
+    id: `V-${String(data.vehicles.length + 1).padStart(3, '0')}`,
+    status: 'Activo',
+    mileage: 0,
+    failures: 0,
+    downtime: 0,
+    monthlyCost: 0,
+    baseConsumption: 0,
+    recentConsumption: 0,
+    ...input,
+    plate: input.plate.trim(),
+    year: Number(input.year),
+  };
 }
 
-const server=http.createServer(async(req,res)=>{
-  const url=new URL(req.url,'http://localhost');
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, 'http://localhost');
   try {
-    if(url.pathname.startsWith('/api/auth/')&&url.pathname!=='/api/auth/logout'&&req.method==='POST'){
-      const companyId=url.pathname.slice('/api/auth/'.length),auth=companyAuth[companyId];
-      if(!auth)return json(res,404,{error:'Empresa no encontrada.'});
-      const credentials=await parseBody(req),blocked=loginRateLimit(req,companyId,credentials.username);
-      if(blocked)return json(res,429,{error:`Demasiados intentos. Intenta de nuevo en ${Math.ceil(blocked/60)} minutos.`});
-      const result=await auth.authenticate(credentials);
-      if(result.status!==200){recordLogin(req,companyId,credentials.username,false);return json(res,result.status,result.body);}
-      recordLogin(req,companyId,credentials.username,true);
-      const token=randomBytes(32).toString('hex');
-      await repository.query('INSERT INTO user_sessions(token_hash,company_id,user_payload,expires_at) VALUES($1,$2,$3::jsonb,now()+($4::double precision * interval \'1 millisecond\'))',[tokenHash(token),companyId,JSON.stringify(result.body.user),sessionLifetimeMs]);
-      return json(res,200,{...result.body,token});
+    if (
+      url.pathname.startsWith('/api/auth/') &&
+      url.pathname !== '/api/auth/logout' &&
+      req.method === 'POST'
+    ) {
+      const companyId = url.pathname.slice('/api/auth/'.length),
+        auth = companyAuth[companyId];
+      if (!auth) return json(res, 404, { error: 'Empresa no encontrada.' });
+      const credentials = await parseBody(req),
+        blocked = loginRateLimit(req, companyId, credentials.username);
+      if (blocked)
+        return json(res, 429, {
+          error: `Demasiados intentos. Intenta de nuevo en ${Math.ceil(blocked / 60)} minutos.`,
+        });
+      const result = await auth.authenticate(credentials);
+      if (result.status !== 200) {
+        recordLogin(req, companyId, credentials.username, false);
+        return json(res, result.status, result.body);
+      }
+      recordLogin(req, companyId, credentials.username, true);
+      const token = randomBytes(32).toString('hex');
+      await repository.query(
+        "INSERT INTO user_sessions(token_hash,company_id,user_payload,expires_at) VALUES($1,$2,$3::jsonb,now()+($4::double precision * interval '1 millisecond'))",
+        [tokenHash(token), companyId, JSON.stringify(result.body.user), sessionLifetimeMs],
+      );
+      return json(res, 200, { ...result.body, token });
     }
-    if(url.pathname.startsWith('/api/')){
-      const session=await getSession(req);
-      if(!session)return json(res,401,{error:'La sesión expiró. Inicia sesión de nuevo.'});
-      const {companyId}=session;
-      if(url.pathname==='/api/auth/logout'&&req.method==='POST'){
-        const token=tokenFrom(req);if(token)await repository.query('DELETE FROM user_sessions WHERE token_hash=$1',[tokenHash(token)]);return json(res,200,{ok:true});
+    if (url.pathname.startsWith('/api/')) {
+      const session = await getSession(req);
+      if (!session) return json(res, 401, { error: 'La sesión expiró. Inicia sesión de nuevo.' });
+      const { companyId } = session;
+      if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+        const token = tokenFrom(req);
+        if (token)
+          await repository.query('DELETE FROM user_sessions WHERE token_hash=$1', [
+            tokenHash(token),
+          ]);
+        return json(res, 200, { ok: true });
       }
-      if(url.pathname==='/api/events'&&req.method==='GET'){
-        res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache',Connection:'keep-alive'});res.write(': connected\n\n');eventClients.set(res,companyId);res.on('close',()=>eventClients.delete(res));return;
+      if (url.pathname === '/api/events' && req.method === 'GET') {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        });
+        res.write(': connected\n\n');
+        eventClients.set(res, companyId);
+        res.on('close', () => eventClients.delete(res));
+        return;
       }
-      if(url.pathname.startsWith('/api/printpilot/')){
-        if(companyId!=='printpilot')return json(res,403,{error:'Este módulo pertenece a PrintPilot.'});
-        const handled=await printpilotRoutes.handle(req,res,url,session,parseBody,json);
-        if(handled!==false){if(['POST','PATCH','DELETE'].includes(req.method)&&res.statusCode<400)publishChange(companyId);return;}
-        return json(res,404,{error:'Ruta PrintPilot no encontrada.'});
-      }
-      if(req.method==='GET'){
-        if(url.pathname==='/api/companies')return json(res,200,await repository.listCompanies());
-        if(url.pathname==='/api/dashboard'){
-          const [data,orderList]=await Promise.all([companyData(companyId),orders.list(companyId)]);
-          return json(res,200,{...metrics(data),alerts:alerts(data),orders:orderList});
+      if (url.pathname.startsWith('/api/printpilot/')) {
+        if (companyId !== 'printpilot')
+          return json(res, 403, { error: 'Este módulo pertenece a PrintPilot.' });
+        const handled = await printpilotRoutes.handle(req, res, url, session, parseBody, json);
+        if (handled !== false) {
+          if (['POST', 'PATCH', 'DELETE'].includes(req.method) && res.statusCode < 400)
+            publishChange(companyId);
+          return;
         }
-        if(url.pathname==='/api/vehicles')return json(res,200,await repository.list('vehicles',companyId));
-        if(url.pathname.startsWith('/api/vehicles/')){
-          const item=await repository.find('vehicles',url.pathname.split('/').pop(),companyId);
-          return item?json(res,200,await detail(item,await companyData(companyId),companyId)):json(res,404,{error:'Vehículo no encontrado.'});
+        return json(res, 404, { error: 'Ruta PrintPilot no encontrada.' });
+      }
+      if (req.method === 'GET') {
+        if (url.pathname === '/api/companies')
+          return json(res, 200, await repository.listCompanies());
+        if (url.pathname === '/api/dashboard') {
+          const [data, orderList] = await Promise.all([
+            companyData(companyId),
+            orders.list(companyId),
+          ]);
+          return json(res, 200, { ...metrics(data), alerts: alerts(data), orders: orderList });
         }
-        if(url.pathname==='/api/maintenance')return json(res,200,await repository.list('maintenance',companyId));
-        if(url.pathname==='/api/orders')return json(res,200,await orders.list(companyId));
-        if(url.pathname==='/api/fuel')return json(res,200,await repository.list('fuel',companyId));
-        if(url.pathname==='/api/repairs')return json(res,200,await repository.list('repairs',companyId));
-        if(url.pathname==='/api/parts')return json(res,200,await repository.list('parts',companyId));
-        if(url.pathname==='/api/documents')return json(res,200,await repository.list('documents',companyId));
-        if(url.pathname==='/api/alerts')return json(res,200,alerts(await companyData(companyId)));
-        if(url.pathname==='/api/analytics')return json(res,200,metrics(await companyData(companyId)));
-        if(url.pathname==='/api/intelligence'){
-          const data=await companyData(companyId);return json(res,200,{anomalies:anomalies(data),risks:data.vehicles.map(item=>risk(item,data))});
+        if (url.pathname === '/api/vehicles')
+          return json(res, 200, await repository.list('vehicles', companyId));
+        if (url.pathname.startsWith('/api/vehicles/')) {
+          const item = await repository.find('vehicles', url.pathname.split('/').pop(), companyId);
+          return item
+            ? json(res, 200, await detail(item, await companyData(companyId), companyId))
+            : json(res, 404, { error: 'Vehículo no encontrado.' });
+        }
+        if (url.pathname === '/api/maintenance')
+          return json(res, 200, await repository.list('maintenance', companyId));
+        if (url.pathname === '/api/orders') return json(res, 200, await orders.list(companyId));
+        if (url.pathname === '/api/fuel')
+          return json(res, 200, await repository.list('fuel', companyId));
+        if (url.pathname === '/api/repairs')
+          return json(res, 200, await repository.list('repairs', companyId));
+        if (url.pathname === '/api/parts')
+          return json(res, 200, await repository.list('parts', companyId));
+        if (url.pathname === '/api/documents')
+          return json(res, 200, await repository.list('documents', companyId));
+        if (url.pathname === '/api/alerts')
+          return json(res, 200, alerts(await companyData(companyId)));
+        if (url.pathname === '/api/analytics')
+          return json(res, 200, metrics(await companyData(companyId)));
+        if (url.pathname === '/api/intelligence') {
+          const data = await companyData(companyId);
+          return json(res, 200, {
+            anomalies: anomalies(data),
+            risks: data.vehicles.map((item) => risk(item, data)),
+          });
         }
       }
-      if(req.method==='POST'&&url.pathname==='/api/vehicles'){
-        const data=await companyData(companyId),item=await repository.create('vehicles',vehicle(await parseBody(req),data),companyId);publishChange(companyId);return json(res,201,item);
+      if (req.method === 'POST' && url.pathname === '/api/vehicles') {
+        const data = await companyData(companyId),
+          item = await repository.create(
+            'vehicles',
+            vehicle(await parseBody(req), data),
+            companyId,
+          );
+        publishChange(companyId);
+        return json(res, 201, item);
       }
-      if(req.method==='POST'&&url.pathname==='/api/orders'){
-        const input=await parseBody(req);if(!await repository.find('vehicles',input.vehicleId,companyId))throw new Error('El vehículo no pertenece a esta empresa.');
-        const item=await orders.create(input,companyId);publishChange(companyId);return json(res,201,item);
+      if (req.method === 'POST' && url.pathname === '/api/orders') {
+        const input = await parseBody(req);
+        if (!(await repository.find('vehicles', input.vehicleId, companyId)))
+          throw new Error('El vehículo no pertenece a esta empresa.');
+        const item = await orders.create(input, companyId);
+        publishChange(companyId);
+        return json(res, 201, item);
       }
-      if(req.method==='POST'&&url.pathname==='/api/maintenance'){
-        const input=await parseBody(req);if(!input.vehicleId||Number(input.mileage)<0||Number(input.cost)<0)throw new Error('Revise vehículo, kilometraje y costo.');
-        if(!await repository.find('vehicles',input.vehicleId,companyId))throw new Error('El vehículo no pertenece a esta empresa.');
-        const item=await repository.create('maintenance',{id:`M-${Date.now()}`,...input,cost:Number(input.cost),mileage:Number(input.mileage)},companyId);publishChange(companyId);return json(res,201,item);
+      if (req.method === 'POST' && url.pathname === '/api/maintenance') {
+        const input = await parseBody(req);
+        if (!input.vehicleId || Number(input.mileage) < 0 || Number(input.cost) < 0)
+          throw new Error('Revise vehículo, kilometraje y costo.');
+        if (!(await repository.find('vehicles', input.vehicleId, companyId)))
+          throw new Error('El vehículo no pertenece a esta empresa.');
+        const item = await repository.create(
+          'maintenance',
+          {
+            id: `M-${Date.now()}`,
+            ...input,
+            cost: Number(input.cost),
+            mileage: Number(input.mileage),
+          },
+          companyId,
+        );
+        publishChange(companyId);
+        return json(res, 201, item);
       }
-      if(req.method==='POST'&&url.pathname==='/api/fuel'){
-        const input=await parseBody(req);if(!input.vehicleId||!input.date||Number(input.mileage)<0||Number(input.liters)<=0||Number(input.cost)<0||!input.provider?.trim())throw new Error('Revise vehículo, fecha, kilometraje, litros, costo y proveedor.');
-        if(!await repository.find('vehicles',input.vehicleId,companyId))throw new Error('El vehículo no pertenece a esta empresa.');
-        const item=await repository.create('fuel',{id:`F-${Date.now()}`,...input,mileage:Number(input.mileage),liters:Number(input.liters),cost:Number(input.cost)},companyId);publishChange(companyId);return json(res,201,item);
+      if (req.method === 'POST' && url.pathname === '/api/fuel') {
+        const input = await parseBody(req);
+        if (
+          !input.vehicleId ||
+          !input.date ||
+          Number(input.mileage) < 0 ||
+          Number(input.liters) <= 0 ||
+          Number(input.cost) < 0 ||
+          !input.provider?.trim()
+        )
+          throw new Error('Revise vehículo, fecha, kilometraje, litros, costo y proveedor.');
+        if (!(await repository.find('vehicles', input.vehicleId, companyId)))
+          throw new Error('El vehículo no pertenece a esta empresa.');
+        const item = await repository.create(
+          'fuel',
+          {
+            id: `F-${Date.now()}`,
+            ...input,
+            mileage: Number(input.mileage),
+            liters: Number(input.liters),
+            cost: Number(input.cost),
+          },
+          companyId,
+        );
+        publishChange(companyId);
+        return json(res, 201, item);
       }
-      if(req.method==='PATCH'&&url.pathname.startsWith('/api/orders/')){
-        const item=await orders.advance(url.pathname.split('/').pop(),companyId);if(!item)return json(res,404,{error:'Orden no encontrada.'});publishChange(companyId);return json(res,200,item);
+      if (req.method === 'PATCH' && url.pathname.startsWith('/api/orders/')) {
+        const item = await orders.advance(url.pathname.split('/').pop(), companyId);
+        if (!item) return json(res, 404, { error: 'Orden no encontrada.' });
+        publishChange(companyId);
+        return json(res, 200, item);
       }
-      return json(res,404,{error:'Ruta no encontrada.'});
+      return json(res, 404, { error: 'Ruta no encontrada.' });
     }
-    if(!['GET','HEAD'].includes(req.method))return json(res,404,{error:'Ruta no encontrada.'});
-    const requestedFile=resolveFrontendFile(url.pathname);
-    if(!requestedFile)return json(res,404,{error:'Archivo no encontrado.'});
-    return serve(res,requestedFile);
-  }catch(error){
-    if(res.writableEnded)return;
-    const status=error.code==='23505'?409:error.code==='MAIL_NOT_CONFIGURED'||error.code==='MAIL_SEND_FAILED'?503:error.code==='BODY_TOO_LARGE'?413:error.code==='ECONNREFUSED'||error.code==='ENOTFOUND'?503:/^\d{5}$/.test(String(error.code||''))?500:400;
-    return json(res,status,{error:safeError(error)});
+    if (!['GET', 'HEAD'].includes(req.method))
+      return json(res, 404, { error: 'Ruta no encontrada.' });
+    const requestedFile = resolveFrontendFile(url.pathname);
+    if (!requestedFile) return json(res, 404, { error: 'Archivo no encontrado.' });
+    return serve(res, requestedFile);
+  } catch (error) {
+    if (res.writableEnded) return;
+    const status =
+      error.code === '23505'
+        ? 409
+        : error.code === 'MAIL_NOT_CONFIGURED' || error.code === 'MAIL_SEND_FAILED'
+          ? 503
+          : error.code === 'BODY_TOO_LARGE'
+            ? 413
+            : error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND'
+              ? 503
+              : /^\d{5}$/.test(String(error.code || ''))
+                ? 500
+                : 400;
+    return json(res, status, { error: safeError(error) });
   }
 });
 
-async function start(){
+async function start() {
   await repository.initialize();
   await repository.query('DELETE FROM user_sessions WHERE expires_at<=now()');
-  const printpilotService=require('./companies/printpilot/service');
+  const printpilotService = require('./companies/printpilot/service');
   await printpilotService.generateScheduledOrders();
-  const schedule=setInterval(()=>printpilotService.generateScheduledOrders().catch(error=>console.error('No se pudieron programar las órdenes preventivas.',safeError(error))),60*60*1000);
+  const schedule = setInterval(
+    () =>
+      printpilotService
+        .generateScheduledOrders()
+        .catch((error) =>
+          console.error('No se pudieron programar las órdenes preventivas.', safeError(error)),
+        ),
+    60 * 60 * 1000,
+  );
   schedule.unref();
-  const port=Number(process.env.PORT||3000),host=process.env.HOST||(process.env.PORT?'0.0.0.0':'127.0.0.1');
-  server.listen(port,host,()=>{console.log(`AutoMaince en http://${host}:${port}`);console.log(`Base de datos PostgreSQL: ${process.env.DATABASE_URL?'DATABASE_URL':'127.0.0.1:5432/automaince'}`);});
+  const port = Number(process.env.PORT || 3000),
+    host = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
+  server.listen(port, host, () => {
+    console.log(`AutoMaince en http://${host}:${port}`);
+    console.log(
+      `Base de datos PostgreSQL: ${process.env.DATABASE_URL ? 'DATABASE_URL' : '127.0.0.1:5432/automaince'}`,
+    );
+  });
 }
-if(require.main===module)start().catch(error=>{console.error('No se pudo iniciar PostgreSQL. Revisa DATABASE_URL y que el servicio esté iniciado.',error.message);process.exitCode=1;});
+if (require.main === module)
+  start().catch((error) => {
+    console.error(
+      'No se pudo iniciar PostgreSQL. Revisa DATABASE_URL y que el servicio esté iniciado.',
+      error.message,
+    );
+    process.exitCode = 1;
+  });
 
-module.exports={server,resolveFrontendFile,safeError,loginRateLimit,recordLogin};
+module.exports = { server, resolveFrontendFile, safeError, loginRateLimit, recordLogin };
