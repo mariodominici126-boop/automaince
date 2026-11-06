@@ -103,4 +103,17 @@ El esquema inicial está en `database/postgres/schema.sql`; el adaptador crea la
 npm test
 ```
 
+## Fase 2 · Seguridad y solidez (PrintPilot)
+
+| Rol | Permisos |
+| --- | --- |
+| Administrador | Todas las operaciones, incluida la gestión de activos, planes, técnicos y bitácora. |
+| Técnico | Consulta de operaciones e informes; puede registrar lecturas, mantenimientos, contramedidas, movimientos de insumos y documentos. No puede administrar activos, planes, técnicos, compras ni consultar la bitácora. |
+
+Los permisos se validan en el servidor. Los códigos de activos admiten únicamente letras, números y guiones; las acciones de filas usan `data-id` y eventos delegados, sin insertar identificadores en código JavaScript. Tras cinco intentos fallidos de inicio de sesión, el siguiente intento queda bloqueado por 15 minutos. Las sesiones se conservan en PostgreSQL durante ocho horas y el flujo de eventos las autentica con la cabecera `Authorization`.
+
+Las escrituras auditadas guardan el cambio y la bitácora dentro de la misma transacción. Las órdenes preventivas se generan cuando inicia el servidor y luego cada hora; consultar el panel o la agenda ya no cambia datos.
+
+`npm test` incluye pruebas de seguridad sin necesidad de PostgreSQL. Las dos pruebas de integración existentes se ejecutan solo cuando está configurada `PRINTPILOT_TEST_DATABASE_URL` y ambas requieren la base local aislada `automaince_test`.
+
 La aplicación no contiene ni expone la contraseña de correo. No subas `.env` al repositorio.

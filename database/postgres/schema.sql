@@ -32,6 +32,14 @@ CREATE TABLE IF NOT EXISTS technicians (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(company_id, username)
 );
+CREATE TABLE IF NOT EXISTS user_sessions (
+  token_hash TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  user_payload JSONB NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS user_sessions_expiry_idx ON user_sessions(expires_at);
 CREATE UNIQUE INDEX IF NOT EXISTS technicians_company_national_id_uq
   ON technicians(company_id, national_id) WHERE national_id IS NOT NULL AND national_id <> '';
 

@@ -17,6 +17,9 @@ const validateCountermeasureValues = input => {
   if (input.status !== undefined && !COUNTERMEASURE_STATUSES.includes(input.status)) throw new Error(`Estado no válido. Use: ${COUNTERMEASURE_STATUSES.join(', ')}.`);
   if (input.priority !== undefined && !COUNTERMEASURE_PRIORITIES.includes(input.priority)) throw new Error(`Prioridad no válida. Use: ${COUNTERMEASURE_PRIORITIES.join(', ')}.`);
 };
+const validateEntityId=id=>{if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(String(id||'')))throw new Error('El identificador solo puede contener letras, números, guiones y guiones bajos.');return String(id);};
+const validateAssetCode=value=>{const code=String(value||'').trim().toUpperCase();if(!/^[A-Z0-9][A-Z0-9-]{0,39}$/.test(code))throw new Error('El código solo puede contener letras, números y guiones (máximo 40 caracteres).');return code;};
+async function transaction(work){const client=await db.pool.connect();try{await client.query('BEGIN');const result=await work(client);await client.query('COMMIT');return result;}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}}
 async function hashPassword(password) {
   if (typeof password !== 'string' || password.trim().length < 8) throw new Error('La contraseña temporal debe tener al menos 8 caracteres.');
   const salt = randomBytes(16).toString('hex');
@@ -33,28 +36,21 @@ async function listAssets(category) {
 }
 async function addAsset(input,user) {
   if(!input.code?.trim()||!input.name?.trim()||!CATEGORIES.includes(input.category))throw new Error('Código, nombre y categoría válida son obligatorios.');
-  const code=input.code.trim().toUpperCase(),id=`PP-${code}`;
-  const {rows}=await db.query(`INSERT INTO assets(id,company_id,code,category,name,description,manufacturer,model,serial_number,acquired_on,location,department,responsible,criticality,operational_status,technical_data)
+  const code=validateAssetCode(input.code),id=`PP-${code}`;
+  return transaction(async client=>{const {rows}=await client.query(`INSERT INTO assets(id,company_id,code,category,name,description,manufacturer,model,serial_number,acquired_on,location,department,responsible,criticality,operational_status,technical_data)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb) RETURNING *`,[id,COMPANY,code,input.category,input.name.trim(),input.description||'',input.manufacturer||'',input.model||'',input.serialNumber||'',input.acquiredOn||null,input.location||'',input.department||'',input.responsible||'',input.criticality||'MEDIA',input.operationalStatus||'OPERATIVO',JSON.stringify(input.technicalData||{})]);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'CREAR','ACTIVO',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);return rows[0];
+  await audit(client,user,'CREAR','ACTIVO',id,null,rows[0]);return rows[0];});
 }
 async function updateAsset(id, input, user) {
+  validateEntityId(id);
   const allowed = ['description','manufacturer','model','serialNumber','acquiredOn','location','department','responsible','criticality','operationalStatus','technicalData'];
   const cols = {serialNumber:'serial_number',acquiredOn:'acquired_on',operationalStatus:'operational_status',technicalData:'technical_data'};
-  const current = await db.query('SELECT * FROM assets WHERE company_id=$1 AND id=$2',[COMPANY,id]);
-  if (!current.rowCount) return null;
-  const before = current.rows[0];
-  const fields=[],values=[];
-  for (const key of allowed) if (Object.hasOwn(input,key)) {
-    const col=cols[key]||key.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);
-    values.push(key==='technicalData'?JSON.stringify(input[key]):input[key]);
-    fields.push(`"${col}"=$${values.length}${key==='technicalData'?'::jsonb':''}`);
-  }
-  if (!fields.length) return before;
-  values.push(id,COMPANY);
-  const { rows } = await db.query(`UPDATE assets SET ${fields.join(',')},updated_at=now() WHERE id=$${values.length-1} AND company_id=$${values.length} RETURNING *`,values);
-  await audit(db,user,'ACTUALIZAR','ACTIVO',id,before,rows[0]);
-  return rows[0];
+  return transaction(async client=>{const current=await client.query('SELECT * FROM assets WHERE company_id=$1 AND id=$2 FOR UPDATE',[COMPANY,id]);if(!current.rowCount)return null;
+    const before=current.rows[0],fields=[],values=[];
+    for(const key of allowed)if(Object.hasOwn(input,key)){const col=cols[key]||key.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);values.push(key==='technicalData'?JSON.stringify(input[key]):input[key]);fields.push(`"${col}"=$${values.length}${key==='technicalData'?'::jsonb':''}`)}
+    if(!fields.length)return before;values.push(id,COMPANY);
+    const {rows}=await client.query(`UPDATE assets SET ${fields.join(',')},updated_at=now() WHERE id=$${values.length-1} AND company_id=$${values.length} RETURNING *`,values);
+    await audit(client,user,'ACTUALIZAR','ACTIVO',id,before,rows[0]);return rows[0];});
 }
 async function listTechnicians() {
   const { rows } = await db.query('SELECT id,username,name,national_id,company_name,role,active,created_at FROM technicians WHERE company_id=$1 ORDER BY name',[COMPANY]);
@@ -99,20 +95,17 @@ async function addTechnician(input,user) {
   if(!/^[a-z0-9._-]{3,40}$/.test(username))throw new Error('El usuario debe tener entre 3 y 40 caracteres: letras, números, punto, guion o guion bajo.');
   const passwordHash=await hashPassword(input.temporaryPassword);
   const id=`PP-TECH-${randomUUID()}`;
-  const { rows }=await db.query(`INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
+  return transaction(async client=>{const { rows }=await client.query(`INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
     VALUES($1,$2,$3,$4,$5,$6,$7,'TECNICO') RETURNING id,username,name,national_id,company_name,role,active`,
   [id,COMPANY,username,input.name.trim(),input.nationalId.trim(),input.companyName.trim(),passwordHash]);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state)
-    VALUES($1,$2,$3,'CREAR','TECNICO',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);
-  return rows[0];
+  await audit(client,user,'CREAR','TECNICO',id,null,rows[0]);return rows[0];});
 }
 async function updateTechnician(id,input,user) {
+  validateEntityId(id);
   if(!input.name?.trim()||!input.nationalId?.trim()||!input.companyName?.trim())throw new Error('Nombre, cédula y empresa son obligatorios.');
-  const before=await db.query('SELECT id,username,name,national_id,company_name,role,active FROM technicians WHERE company_id=$1 AND id=$2',[COMPANY,id]);if(!before.rowCount)return null;
-  const {rows}=await db.query(`UPDATE technicians SET name=$1,national_id=$2,company_name=$3 WHERE company_id=$4 AND id=$5
-    RETURNING id,username,name,national_id,company_name,role,active`,[input.name.trim(),input.nationalId.trim(),input.companyName.trim(),COMPANY,id]);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,before_state,after_state)
-    VALUES($1,$2,$3,'ACTUALIZAR','TECNICO',$4,$5::jsonb,$6::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(before.rows[0]),JSON.stringify(rows[0])]);return rows[0];
+  return transaction(async client=>{const before=await client.query('SELECT id,username,name,national_id,company_name,role,active FROM technicians WHERE company_id=$1 AND id=$2 FOR UPDATE',[COMPANY,id]);if(!before.rowCount)return null;
+    const {rows}=await client.query(`UPDATE technicians SET name=$1,national_id=$2,company_name=$3 WHERE company_id=$4 AND id=$5 RETURNING id,username,name,national_id,company_name,role,active`,[input.name.trim(),input.nationalId.trim(),input.companyName.trim(),COMPANY,id]);
+    await audit(client,user,'ACTUALIZAR','TECNICO',id,before.rows[0],rows[0]);return rows[0];});
 }
 async function listPlans() {
   const { rows } = await db.query(`SELECT p.*,COALESCE(json_agg(pa.asset_id) FILTER(WHERE pa.asset_id IS NOT NULL),'[]') asset_ids
@@ -126,21 +119,8 @@ async function createPlan(input,user) {
   if(intervalMonths&&intervalDays)throw new Error('Elija una frecuencia de calendario: días o meses.');
   if(usageInterval&&!['HORAS','CICLOS','IMPRESIONES'].includes(input.usageUnit))throw new Error('Elija la unidad de uso del plan.');
   if(input.technicianId&&!(await db.query('SELECT 1 FROM technicians WHERE company_id=$1 AND id=$2',[COMPANY,input.technicianId])).rowCount)throw new Error('El técnico no pertenece a PrintPilot.');
-  const id=`PP-PLAN-${randomUUID()}`,client=await db.pool?.connect?.();
-  if (!client) {
-    const { rows }=await db.query(`INSERT INTO maintenance_plans(id,company_id,name,category,interval_months,interval_days,usage_interval,usage_unit,next_due_at,tasks,created_by,assigned_to)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12) RETURNING *`,[id,COMPANY,input.name.trim(),input.category||'',intervalMonths,intervalDays,usageInterval,input.usageUnit||null,input.nextDueAt||null,JSON.stringify(input.tasks),actorId(user),input.technicianId||null]);
-    for (const assetId of input.assetIds) {
-      const asset=await db.query('SELECT meter_value,meter_unit FROM assets WHERE company_id=$1 AND id=$2',[COMPANY,assetId]);
-      if(!asset.rowCount)throw new Error('Uno de los activos no pertenece a PrintPilot.');
-      if(usageInterval&&asset.rows[0].meter_unit&&asset.rows[0].meter_unit!==input.usageUnit)throw new Error('La unidad del plan debe coincidir con la unidad de lectura actual del activo.');
-      await db.query('INSERT INTO plan_assets(plan_id,asset_id,next_usage_due) VALUES($1,$2,$3)',[id,assetId,usageInterval?Number(asset.rows[0].meter_value||0)+usageInterval:null]);
-    }
-    await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'CREAR','PLAN',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);
-    return rows[0];
-  }
-  try {
-    await client.query('BEGIN');
+  const id=`PP-PLAN-${randomUUID()}`;
+  const created=await transaction(async client=>{
     const { rows }=await client.query(`INSERT INTO maintenance_plans(id,company_id,name,category,interval_months,interval_days,usage_interval,usage_unit,next_due_at,tasks,created_by,assigned_to)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12) RETURNING *`,[id,COMPANY,input.name.trim(),input.category||'',intervalMonths,intervalDays,usageInterval,input.usageUnit||null,input.nextDueAt||null,JSON.stringify(input.tasks),actorId(user),input.technicianId||null]);
     for (const assetId of input.assetIds) {
@@ -150,32 +130,35 @@ async function createPlan(input,user) {
       await client.query('INSERT INTO plan_assets(plan_id,asset_id,next_usage_due) VALUES($1,$2,$3)',[id,assetId,usageInterval?Number(asset.rows[0].meter_value||0)+usageInterval:null]);
     }
     await audit(client,user,'CREAR','PLAN',id,null,rows[0]);
-    await client.query('COMMIT'); return rows[0];
-  } catch(error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
+    return rows[0];
+  });
+  await generateScheduledOrders();
+  return created;
 }
 async function generateScheduledOrders() {
   const today=todayInSantoDomingo(), horizon=addDays(today,30);
-  const plans = await db.query(`SELECT p.*,pa.asset_id FROM maintenance_plans p JOIN plan_assets pa ON pa.plan_id=p.id
+  const systemActor={id:'SYSTEM',displayName:'Sistema de programación'};
+  return transaction(async client=>{const plans = await client.query(`SELECT p.*,pa.asset_id FROM maintenance_plans p JOIN plan_assets pa ON pa.plan_id=p.id
     WHERE p.company_id=$1 AND p.active=true AND p.next_due_at IS NOT NULL AND p.next_due_at <= $2::date
-      AND (p.interval_days IS NOT NULL OR p.interval_months IS NOT NULL)`,[COMPANY,horizon]);
+      AND (p.interval_days IS NOT NULL OR p.interval_months IS NOT NULL) FOR UPDATE OF p SKIP LOCKED`,[COMPANY,horizon]);
   for (const plan of plans.rows) {
     let due=dateString(plan.next_due_at);
     if(due>horizon)continue;
-    const {rows:assetRows}=await db.query('SELECT name FROM assets WHERE id=$1',[plan.asset_id]);
+    const {rows:assetRows}=await client.query('SELECT name FROM assets WHERE id=$1',[plan.asset_id]);
     while(due<=horizon){
       const occurrence=due.replaceAll('-','');
       const orderId=`PP-OT-${plan.id}-${plan.asset_id}-${occurrence}`;
-      await db.query(`INSERT INTO work_orders(id,company_id,asset_id,plan_id,kind,description,status,planned_at,technician_id)
-        VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',$6,$7) ON CONFLICT DO NOTHING`,[orderId,COMPANY,plan.asset_id,plan.id,`Mantenimiento programado: ${plan.name}${assetRows[0]?` · ${assetRows[0].name}`:''}`,due,plan.assigned_to||null]);
+      const inserted=await client.query(`INSERT INTO work_orders(id,company_id,asset_id,plan_id,kind,description,status,planned_at,technician_id)
+        VALUES($1,$2,$3,$4,'PREVENTIVO',$5,'PROGRAMADA',$6,$7) ON CONFLICT DO NOTHING RETURNING *`,[orderId,COMPANY,plan.asset_id,plan.id,`Mantenimiento programado: ${plan.name}${assetRows[0]?` · ${assetRows[0].name}`:''}`,due,plan.assigned_to||null]);
+      if(inserted.rowCount)await audit(client,systemActor,'GENERAR','ORDEN',orderId,null,inserted.rows[0]);
       if(plan.interval_days)due=addDays(due,Number(plan.interval_days));
       else if(plan.interval_months)due=addMonthsClamped(due,Number(plan.interval_months));
       else break;
     }
-    if(due!==dateString(plan.next_due_at))await db.query('UPDATE maintenance_plans SET next_due_at=$1 WHERE id=$2',[due,plan.id]);
-  }
+    if(due!==dateString(plan.next_due_at)){await client.query('UPDATE maintenance_plans SET next_due_at=$1 WHERE id=$2',[due,plan.id]);await audit(client,systemActor,'PROGRAMAR','PLAN',plan.id,{next_due_at:plan.next_due_at},{next_due_at:due});}
+  }return true;});
 }
 async function listOrders(from,to) {
-  await generateScheduledOrders();
   const {rows}=await db.query(`SELECT o.*,a.code asset_code,a.name asset_name,t.name technician_name,p.tasks,p.category plan_category
     FROM work_orders o JOIN assets a ON a.id=o.asset_id LEFT JOIN technicians t ON t.id=o.technician_id LEFT JOIN maintenance_plans p ON p.id=o.plan_id
     WHERE o.company_id=$1 AND ($2::date IS NULL OR o.planned_at >= $2) AND ($3::date IS NULL OR o.planned_at < $3)
@@ -259,17 +242,17 @@ async function createCountermeasure(input,user) {
   const asset=await db.query('SELECT 1 FROM assets WHERE company_id=$1 AND id=$2',[COMPANY,input.assetId]);if(!asset.rowCount)throw new Error('El activo no pertenece a PrintPilot.');
   if(input.technicianId&&!(await db.query('SELECT 1 FROM technicians WHERE company_id=$1 AND id=$2',[COMPANY,input.technicianId])).rowCount)throw new Error('El técnico no pertenece a PrintPilot.');
   const id=`PP-CM-${randomUUID()}`;
-  const {rows}=await db.query(`INSERT INTO countermeasures(id,company_id,asset_id,title,status,priority,issue,root_cause,action_taken,electronic_changes,parts,checklist,technician_id,provider,planned_at,labor_hours,labor_cost,parts_cost,total_cost,notes)
+  return transaction(async client=>{const {rows}=await client.query(`INSERT INTO countermeasures(id,company_id,asset_id,title,status,priority,issue,root_cause,action_taken,electronic_changes,parts,checklist,technician_id,provider,planned_at,labor_hours,labor_cost,parts_cost,total_cost,notes)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
   [id,COMPANY,input.assetId,input.title.trim(),input.status||'PENDIENTE',input.priority||'MEDIA',input.issue.trim(),input.rootCause||'',input.actionTaken||'',input.electronicChanges||'',JSON.stringify(input.parts||[]),JSON.stringify(input.checklist||[]),input.technicianId||actorId(user),input.provider||'',input.plannedAt||null,Number(input.laborHours||0),Number(input.laborCost||0),Number(input.partsCost||0),Number(input.totalCost||0),input.notes||'']);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'CREAR','CONTRAMEDIDA',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);
-  return rows[0];
+  await audit(client,user,'CREAR','CONTRAMEDIDA',id,null,rows[0]);return rows[0];});
 }
 async function listCountermeasures() {
   const {rows}=await db.query(`SELECT c.*,a.code asset_code,a.name asset_name,t.name technician_name FROM countermeasures c JOIN assets a ON a.id=c.asset_id LEFT JOIN technicians t ON t.id=c.technician_id WHERE c.company_id=$1 ORDER BY c.created_at DESC`,[COMPANY]);
   return rows.map(r=>({...r,parts:toJson(r.parts),checklist:toJson(r.checklist)}));
 }
 async function updateCountermeasure(id,input,user) {
+  validateEntityId(id);
   validateCountermeasureValues(input);
   const editable=['status','priority','rootCause','actionTaken','electronicChanges','parts','checklist','technicianId','provider','plannedAt','startedAt','completedAt','laborHours','laborCost','partsCost','totalCost','notes'];
   const columns={rootCause:'root_cause',actionTaken:'action_taken',electronicChanges:'electronic_changes',technicianId:'technician_id',plannedAt:'planned_at',startedAt:'started_at',completedAt:'completed_at',laborHours:'labor_hours',laborCost:'labor_cost',partsCost:'parts_cost',totalCost:'total_cost'};
@@ -279,9 +262,9 @@ async function updateCountermeasure(id,input,user) {
   const sets=[],values=[];
   for(const key of editable) if(Object.hasOwn(input,key)){const col=columns[key]||key.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`); values.push(['parts','checklist'].includes(key)?JSON.stringify(input[key]):key==='plannedAt'||key==='startedAt'||key==='completedAt'?input[key]||null:input[key]);sets.push(`"${col}"=$${values.length}${['parts','checklist'].includes(key)?'::jsonb':''}`)}
   if(!sets.length)return before.rows[0];
-  values.push(id,COMPANY);const {rows}=await db.query(`UPDATE countermeasures SET ${sets.join(',')},updated_at=now() WHERE id=$${values.length-1} AND company_id=$${values.length} RETURNING *`,values);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,before_state,after_state) VALUES($1,$2,$3,'ACTUALIZAR','CONTRAMEDIDA',$4,$5::jsonb,$6::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(before.rows[0]),JSON.stringify(rows[0])]);
-  return rows[0];
+  return transaction(async client=>{const locked=await client.query('SELECT * FROM countermeasures WHERE company_id=$1 AND id=$2 FOR UPDATE',[COMPANY,id]);if(!locked.rowCount)return null;
+    values.push(id,COMPANY);const {rows}=await client.query(`UPDATE countermeasures SET ${sets.join(',')},updated_at=now() WHERE id=$${values.length-1} AND company_id=$${values.length} RETURNING *`,values);
+    await audit(client,user,'ACTUALIZAR','CONTRAMEDIDA',id,locked.rows[0],rows[0]);return rows[0];});
 }
 async function listSupplies() {
   const {rows}=await db.query('SELECT * FROM supplies WHERE company_id=$1 ORDER BY kind,name',[COMPANY]);return rows;
@@ -319,9 +302,9 @@ async function requestPurchase(id,input,user) {
     } catch { const e=new Error('Gmail no pudo enviar el aviso a Compras. El pedido de gas no se registró.');e.code='MAIL_SEND_FAILED';throw e; }
   }
   const idRequest=`PP-OC-${randomUUID()}`;
-  await db.query(`INSERT INTO purchase_requests(id,company_id,supply_id,quantity,recipient,email_status,email_message_id,requested_by,note)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[idRequest,COMPANY,id,quantity,recipient,status,messageId,actorId(user),input.note||'']);
-  return {id:idRequest,emailStatus:status,recipient};
+  return transaction(async client=>{const {rows}=await client.query(`INSERT INTO purchase_requests(id,company_id,supply_id,quantity,recipient,email_status,email_message_id,requested_by,note)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[idRequest,COMPANY,id,quantity,recipient,status,messageId,actorId(user),input.note||'']);
+    await audit(client,user,'SOLICITAR_COMPRA','ORDEN_COMPRA',idRequest,null,rows[0]);return {id:idRequest,emailStatus:status,recipient};});
 }
 async function supplyMovements() { return (await db.query(`SELECT m.*,s.name supply_name,t.name technician_name FROM supply_movements m JOIN supplies s ON s.id=m.supply_id LEFT JOIN technicians t ON t.id=m.technician_id WHERE m.company_id=$1 ORDER BY m.created_at DESC LIMIT 200`,[COMPANY])).rows; }
 async function documents() { return (await db.query(`SELECT id,asset_id,maintenance_record_id,countermeasure_id,name,document_type,original_filename,mime_type,size_bytes,uploaded_by,created_at FROM documents WHERE company_id=$1 ORDER BY created_at DESC`,[COMPANY])).rows; }
@@ -334,9 +317,9 @@ async function addDocument(input,user) {
   if(input.countermeasureId && !(await db.query('SELECT 1 FROM countermeasures WHERE company_id=$1 AND id=$2',[COMPANY,input.countermeasureId])).rowCount)throw new Error('La contramedida no pertenece a PrintPilot.');
   if(input.maintenanceId && !(await db.query('SELECT 1 FROM maintenance_records WHERE company_id=$1 AND id=$2',[COMPANY,input.maintenanceId])).rowCount)throw new Error('El mantenimiento no pertenece a PrintPilot.');
   const id=`PP-DOC-${randomUUID()}`;
-  const {rows}=await db.query(`INSERT INTO documents(id,company_id,asset_id,maintenance_record_id,countermeasure_id,name,document_type,original_filename,mime_type,size_bytes,contents,uploaded_by)
+  return transaction(async client=>{const {rows}=await client.query(`INSERT INTO documents(id,company_id,asset_id,maintenance_record_id,countermeasure_id,name,document_type,original_filename,mime_type,size_bytes,contents,uploaded_by)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,name,document_type,original_filename,mime_type,size_bytes,asset_id,countermeasure_id,created_at`,[id,COMPANY,input.assetId||null,input.maintenanceId||null,input.countermeasureId||null,input.name.trim(),input.documentType||'GENERAL',input.filename,input.mimeType,contents.length,contents,actorId(user)]);
-  await db.query(`INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'ADJUNTAR','DOCUMENTO',$4,$5::jsonb)`,[COMPANY,actorId(user),user?.displayName||'Emmanuel',id,JSON.stringify(rows[0])]);return rows[0];
+  await audit(client,user,'ADJUNTAR','DOCUMENTO',id,null,rows[0]);return rows[0];});
 }
 async function documentContent(id) { const {rows}=await db.query('SELECT original_filename,mime_type,contents FROM documents WHERE company_id=$1 AND id=$2',[COMPANY,id]);return rows[0]||null; }
 async function report(filters={}) {
@@ -354,4 +337,4 @@ async function report(filters={}) {
 }
 async function auditLog() { return (await db.query('SELECT id,actor_name,action,entity_type,entity_id,before_state,after_state,created_at FROM audit_log WHERE company_id=$1 ORDER BY created_at DESC LIMIT 300',[COMPANY])).rows; }
 
-module.exports = { COMPANY,CATEGORIES,listAssets,addAsset,updateAsset,listAssetReadings,addAssetReading,listTechnicians,addTechnician,updateTechnician,listPlans,createPlan,listOrders,changeOrderStatus,dashboard,listMaintenance,completeOrder,createCountermeasure,listCountermeasures,updateCountermeasure,listSupplies,recordSupplyMovement,requestPurchase,supplyMovements,documents,addDocument,documentContent,report,auditLog,hashPassword };
+module.exports = { COMPANY,CATEGORIES,validateEntityId,validateAssetCode,listAssets,addAsset,updateAsset,listAssetReadings,addAssetReading,listTechnicians,addTechnician,updateTechnician,listPlans,createPlan,listOrders,generateScheduledOrders,changeOrderStatus,dashboard,listMaintenance,completeOrder,createCountermeasure,listCountermeasures,updateCountermeasure,listSupplies,recordSupplyMovement,requestPurchase,supplyMovements,documents,addDocument,documentContent,report,auditLog,hashPassword };

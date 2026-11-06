@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { randomBytes } = require('crypto');
+const { randomBytes, createHash } = require('crypto');
 const repository = require('../database/adapters/postgresRepository');
 const { metrics } = require('./services/analytics_service/analyticsService');
 const { alerts } = require('./services/alert_service/alertService');
@@ -18,19 +18,49 @@ const companyAuth = {
 };
 const root = path.resolve(__dirname, '..');
 const frontendRoot = path.join(root, 'frontend');
-const sessions = new Map();
 const sessionLifetimeMs = 8 * 60 * 60 * 1000;
 const eventClients = new Map();
+const loginAttempts = new Map();
+const rateWindowMs=15*60*1000, maxLoginFailures=5;
 
 async function companyData(companyId) {
   const entries=await Promise.all(repository.collections.map(async name=>[name,await repository.list(name,companyId)]));
   return Object.fromEntries(entries);
 }
-function getSession(req, url) {
+function tokenFrom(req) {
   const bearer=req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
-  const token=bearer||url.searchParams.get('token'),session=token&&sessions.get(token);
-  if(!session||session.expiresAt<=Date.now()){if(token)sessions.delete(token);return null;}
-  return session;
+  return bearer||null;
+}
+const tokenHash=token=>createHash('sha256').update(token).digest('hex');
+async function getSession(req) {
+  const token=tokenFrom(req); if(!token)return null;
+  const {rows}=await repository.query('SELECT company_id,user_payload,expires_at FROM user_sessions WHERE token_hash=$1 AND expires_at>now()',[tokenHash(token)]);
+  if(!rows.length){await repository.query('DELETE FROM user_sessions WHERE token_hash=$1 OR expires_at<=now()',[tokenHash(token)]);return null;}
+  return {companyId:rows[0].company_id,user:typeof rows[0].user_payload==='string'?JSON.parse(rows[0].user_payload):rows[0].user_payload,expiresAt:rows[0].expires_at};
+}
+function loginRateLimit(req,company,username){
+  const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||req.socket.remoteAddress||'unknown';
+  const key=`${ip}:${company}:${String(username||'').trim().toLowerCase()}`;
+  const now=Date.now(),attempt=loginAttempts.get(key)||{failures:[],blockedUntil:0};
+  attempt.failures=attempt.failures.filter(time=>now-time<rateWindowMs);
+  if(attempt.blockedUntil>now)return Math.ceil((attempt.blockedUntil-now)/1000);
+  if(attempt.failures.length>=maxLoginFailures){attempt.blockedUntil=now+rateWindowMs;loginAttempts.set(key,attempt);return Math.ceil(rateWindowMs/1000);}
+  loginAttempts.set(key,attempt);return 0;
+}
+function recordLogin(req,company,username,success){
+  const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||req.socket.remoteAddress||'unknown';
+  const key=`${ip}:${company}:${String(username||'').trim().toLowerCase()}`;
+  if(success){loginAttempts.delete(key);return;}
+  const attempt=loginAttempts.get(key)||{failures:[],blockedUntil:0};
+  attempt.failures=attempt.failures.filter(time=>Date.now()-time<rateWindowMs);attempt.failures.push(Date.now());
+  if(attempt.failures.length>=maxLoginFailures)attempt.blockedUntil=Date.now()+rateWindowMs;
+  loginAttempts.set(key,attempt);
+}
+function safeError(error){
+  const messages={'23505':'Ya existe un registro con esos datos.','23503':'No se puede guardar porque un registro relacionado ya no existe.','23514':'Uno o más valores no cumplen las reglas permitidas.','23502':'Falta completar un dato obligatorio.','22P02':'Uno de los datos tiene un formato no válido.','22007':'La fecha tiene un formato no válido.','22003':'Uno de los números está fuera del rango permitido.',ECONNREFUSED:'No se pudo conectar con la base de datos. Verifica que esté iniciada.',ENOTFOUND:'No se encontró el servidor de base de datos.',BODY_TOO_LARGE:'El archivo o solicitud supera 12 MB.',MAIL_NOT_CONFIGURED:error.message,MAIL_SEND_FAILED:error.message};
+  if(messages[error.code])return messages[error.code];
+  if(error.code==='42703'||error.code==='42P01'||/^\d{5}$/.test(String(error.code||'')))return 'Ocurrió un problema interno al guardar. Contacta al administrador.';
+  return error.message||'No se pudo completar la operación.';
 }
 function publishChange(companyId) {
   for(const [client,clientCompany] of eventClients)if(clientCompany===companyId)client.write('event: data-changed\ndata: {}\n\n');
@@ -70,18 +100,21 @@ const server=http.createServer(async(req,res)=>{
     if(url.pathname.startsWith('/api/auth/')&&url.pathname!=='/api/auth/logout'&&req.method==='POST'){
       const companyId=url.pathname.slice('/api/auth/'.length),auth=companyAuth[companyId];
       if(!auth)return json(res,404,{error:'Empresa no encontrada.'});
-      const result=await auth.authenticate(await parseBody(req));
-      if(result.status!==200)return json(res,result.status,result.body);
+      const credentials=await parseBody(req),blocked=loginRateLimit(req,companyId,credentials.username);
+      if(blocked)return json(res,429,{error:`Demasiados intentos. Intenta de nuevo en ${Math.ceil(blocked/60)} minutos.`});
+      const result=await auth.authenticate(credentials);
+      if(result.status!==200){recordLogin(req,companyId,credentials.username,false);return json(res,result.status,result.body);}
+      recordLogin(req,companyId,credentials.username,true);
       const token=randomBytes(32).toString('hex');
-      sessions.set(token,{companyId,user:result.body.user,expiresAt:Date.now()+sessionLifetimeMs});
+      await repository.query('INSERT INTO user_sessions(token_hash,company_id,user_payload,expires_at) VALUES($1,$2,$3::jsonb,now()+($4::double precision * interval \'1 millisecond\'))',[tokenHash(token),companyId,JSON.stringify(result.body.user),sessionLifetimeMs]);
       return json(res,200,{...result.body,token});
     }
     if(url.pathname.startsWith('/api/')){
-      const session=getSession(req,url);
+      const session=await getSession(req);
       if(!session)return json(res,401,{error:'La sesión expiró. Inicia sesión de nuevo.'});
       const {companyId}=session;
       if(url.pathname==='/api/auth/logout'&&req.method==='POST'){
-        const token=req.headers.authorization?.match(/^Bearer\s+(.+)$/i)?.[1];if(token)sessions.delete(token);return json(res,200,{ok:true});
+        const token=tokenFrom(req);if(token)await repository.query('DELETE FROM user_sessions WHERE token_hash=$1',[tokenHash(token)]);return json(res,200,{ok:true});
       }
       if(url.pathname==='/api/events'&&req.method==='GET'){
         res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache',Connection:'keep-alive'});res.write(': connected\n\n');eventClients.set(res,companyId);res.on('close',()=>eventClients.delete(res));return;
@@ -143,16 +176,21 @@ const server=http.createServer(async(req,res)=>{
     return serve(res,requestedFile);
   }catch(error){
     if(res.writableEnded)return;
-    const status=error.code==='23505'?409:error.code==='MAIL_NOT_CONFIGURED'||error.code==='MAIL_SEND_FAILED'?503:error.code==='BODY_TOO_LARGE'?413:error.code==='ECONNREFUSED'||error.code==='ENOTFOUND'?503:400;
-    return json(res,status,{error:error.message||'No se pudo completar la operación.'});
+    const status=error.code==='23505'?409:error.code==='MAIL_NOT_CONFIGURED'||error.code==='MAIL_SEND_FAILED'?503:error.code==='BODY_TOO_LARGE'?413:error.code==='ECONNREFUSED'||error.code==='ENOTFOUND'?503:/^\d{5}$/.test(String(error.code||''))?500:400;
+    return json(res,status,{error:safeError(error)});
   }
 });
 
 async function start(){
   await repository.initialize();
+  await repository.query('DELETE FROM user_sessions WHERE expires_at<=now()');
+  const printpilotService=require('./companies/printpilot/service');
+  await printpilotService.generateScheduledOrders();
+  const schedule=setInterval(()=>printpilotService.generateScheduledOrders().catch(error=>console.error('No se pudieron programar las órdenes preventivas.',safeError(error))),60*60*1000);
+  schedule.unref();
   const port=Number(process.env.PORT||3000),host=process.env.HOST||(process.env.PORT?'0.0.0.0':'127.0.0.1');
   server.listen(port,host,()=>{console.log(`AutoMaince en http://${host}:${port}`);console.log(`Base de datos PostgreSQL: ${process.env.DATABASE_URL?'DATABASE_URL':'127.0.0.1:5432/automaince'}`);});
 }
 if(require.main===module)start().catch(error=>{console.error('No se pudo iniciar PostgreSQL. Revisa DATABASE_URL y que el servicio esté iniciado.',error.message);process.exitCode=1;});
 
-module.exports={server,resolveFrontendFile};
+module.exports={server,resolveFrontendFile,safeError,loginRateLimit,recordLogin};
