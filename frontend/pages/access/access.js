@@ -45,7 +45,7 @@ window.showCompanyLogin = function (companyId) {
         <button class="login-submit" type="submit">Iniciar sesión <span>→</span></button>
         <p class="login-feedback" role="status" aria-live="polite"></p>
       </form>
-      <p class="login-auth-note">${companyId === 'gtg' ? 'Acceso provisional GTG habilitado para revisión del sistema.' : `La autenticación de ${company.shortName} aún requiere conectar su servicio empresarial.`}</p>
+      <p class="login-auth-note">${companyId === 'gtg' ? 'Acceso provisional GTG habilitado para revisión del sistema.' : companyId === 'printpilot' ? 'Cuenta provisional de PrintPilot habilitada para iniciar.' : `La autenticación de ${company.shortName} aún requiere conectar su servicio empresarial.`}</p>
     </div></section>
   </main>`;
   root.querySelector('[data-back-to-companies]').addEventListener('click', window.showAccessPanel);
@@ -65,6 +65,7 @@ window.showCompanyLogin = function (companyId) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'No se pudo iniciar sesión.');
+      sessionStorage.setItem('automaince.token', result.token);
       sessionStorage.setItem('automaince.user', JSON.stringify(result.user));
       window.enterMaintenanceWorkspace(result.user);
     } catch (error) {
@@ -78,9 +79,17 @@ window.showCompanyLogin = function (companyId) {
 window.enterMaintenanceWorkspace = function (user) {
   document.getElementById('accessPortal').innerHTML = '';
   document.getElementById('accessPortal').classList.add('hidden');
-  document.getElementById('workspace').classList.remove('hidden');
+  const workspace = document.getElementById('workspace');
+  const isGtg = String(user.company || '').toLowerCase() === 'gtg';
+  workspace.classList.toggle('company-gtg', isGtg);
+  document.querySelector('.brand-company-logo').classList.toggle('hidden', !isGtg);
+  document.querySelector('.brand-app-name').classList.toggle('hidden', isGtg);
+  document.querySelector('.workspace-company').classList.toggle('hidden', !isGtg);
+  workspace.classList.remove('hidden');
   const userButton = document.querySelector('.user');
   userButton.textContent = user.initials || 'GTG';
   userButton.title = `${user.displayName || 'Usuario'} · Cerrar sesión`;
+  window.connectDataEvents?.();
+  window.loadWorkspaceData?.();
   navigate('dashboard');
 };

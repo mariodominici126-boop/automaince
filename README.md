@@ -1,91 +1,132 @@
-# AutoMaince
+# AutoMaince · mantenimiento de flota y equipos
 
-Aplicación web para gestión, mantenimiento y análisis de flotas, con una aplicación JavaFX de escritorio que muestra la misma interfaz web. El navegador y el escritorio comparten las mismas pantallas y el mismo servidor.
+Aplicación web con interfaz compartida con el cliente JavaFX. El módulo PrintPilot trabaja con activos de producción y usa PostgreSQL.
 
-## Ejecución
+## Iniciar PostgreSQL y la aplicación en Windows
 
-Requiere Node.js 18 o superior y Java 21. La aplicación JavaFX abre por defecto la web publicada en Render; por tanto, no es necesario iniciar Node.js para usarla con conexión a internet.
+No se requiere Docker. Instala Node.js 22 o superior y PostgreSQL para Windows desde el [instalador oficial enlazado por PostgreSQL](https://www.postgresql.org/download/windows/). Durante la instalación incluye pgAdmin y recuerda la contraseña que asignes al usuario `postgres`.
 
-Para trabajar en desarrollo local, inicie el servidor desde la raíz:
+En CMD, en la carpeta del proyecto, copia la plantilla local si aún no tienes `.env`:
 
-```bash
+```cmd
+if not exist .env copy .env.example .env
+npm install
+```
+
+En el menú Inicio, abre **SQL Shell (psql)**. Conéctate al servidor local (puedes aceptar los valores por defecto con Enter) e inicia sesión como `postgres` usando la contraseña elegida durante la instalación. Ejecuta estas instrucciones SQL, una por una:
+
+```sql
+CREATE USER automaince WITH PASSWORD 'automaince_dev';
+CREATE DATABASE automaince OWNER automaince;
+```
+
+Si PostgreSQL ya tiene ese usuario o esa base, no los crees de nuevo. La conexión se configura en `.env` mediante `DATABASE_URL`; el valor de plantilla es `postgresql://automaince:automaince_dev@127.0.0.1:5432/automaince`.
+
+Comprueba que el servicio PostgreSQL esté iniciado desde la aplicación **Servicios** de Windows (su nombre comienza con `postgresql`). Luego, en CMD:
+
+```cmd
 npm start
 ```
 
-Abra `http://localhost:3000` para usar la aplicación web local. Para que JavaFX use esa misma instancia local, configure la URL y ejecute:
-
-```bash
-AUTOMAINCE_WEB_URL=http://localhost:3000 ./mvnw javafx:run
-```
-
-En Windows PowerShell, configure `$env:AUTOMAINCE_WEB_URL = 'http://localhost:3000'`. Luego ejecute `npm start` en una terminal y `mvnw.cmd javafx:run` en otra. Si no configura esta variable, JavaFX abre `https://automaince.onrender.com`.
-
-Para validar la lógica principal: `npm test`.
-
-## Acceso provisional GTG
-
-Para revisión local, el usuario temporal es `admin.gtg` y la contraseña `GtgDemo2026!`. El servidor permite cambiarlos con las variables `GTG_DEMO_USER` y `GTG_DEMO_PASSWORD`. Este acceso es solo de demostración; antes de publicar el login en producción, configure credenciales privadas en el entorno del servidor y conecte la autenticación corporativa.
-
-Las vistas activas se editan una sola vez en `frontend/`; esos mismos HTML, CSS y JavaScript se ven en el navegador y dentro del escritorio. Los cambios hechos al código local se publican en la web y en JavaFX cuando se despliega la nueva versión en Render. Los FXML anteriores quedan como prototipos sin uso en el inicio de la aplicación.
-
-## Módulos por empresa
-
-La aplicación sigue siendo un solo producto web con un solo servidor y un área común de mantenimiento. Cada empresa tiene su propia carpeta para evitar mezclar logotipos, configuración, estilos, login y autenticación:
+Abre `http://localhost:3000` y entra a PrintPilot con:
 
 ```text
-frontend/companies/gtg/             Identidad, login y logo GTG
-frontend/companies/notions/         Identidad, login y logos Notions
-frontend/companies/now-logistics/   Identidad, login y logo NOW
-frontend/companies/printpilot/      Identidad, login y logo PrintPilot
-backend/companies/<empresa>/        Autenticación y lógica propia del servidor
-src/main/java/.../companies/<empresa>/  Controller JavaFX del login
-src/main/resources/.../Vistas/companies/<empresa>/  FXML del login
-src/main/resources/.../images/companies/<empresa>/  Recursos de escritorio
+Usuario: emmanuel
+Contraseña temporal: PP-Emmanuel-2026!
 ```
 
-`frontend/pages/access/` y `backend/server.js` coordinan las empresas. `frontend/components/` y `frontend/pages/` contienen las vistas compartidas de flota; `backend/services/`, `backend/models/`, `database/` y `data/` contienen la lógica y los datos compartidos. La aplicación JavaFX abre la misma web con WebView, así que se despliega y se edita una sola interfaz.
+La primera ejecución crea el esquema y carga los 19 activos del inventario PDF. PostgreSQL guarda la información en el equipo y se inicia por separado del servidor web. La contraseña provisional se guarda como hash scrypt con sal, nunca en texto plano. El archivo SQLite anterior se conserva, pero sus datos no se transfieren automáticamente.
 
-Cada módulo web registra sus datos desde `company.js`, sus colores desde `login.css` y sus imágenes desde `assets/`. La autenticación GTG está separada en `backend/companies/gtg/auth.js`. Los módulos Notions, NOW y PrintPilot dejan claro dónde conectar sus servicios; sus autenticaciones corporativas todavía no están integradas.
+### Variables de configuración (`.env`)
 
-## Subir cambios a GitHub y mantener la web pública
+| Variable                             | Para qué sirve                                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                       | Conexión PostgreSQL usada por la aplicación. En local apunta a `127.0.0.1:5432/automaince`; en alojamiento se configura como secreto del servicio. |
+| `PGSSLMODE`                          | Usa `require` si el proveedor PostgreSQL exige conexión TLS; déjala vacía para PostgreSQL local.                                                   |
+| `PGPOOL_SIZE`                        | Máximo de conexiones simultáneas del servidor a PostgreSQL; por defecto, 10.                                                                       |
+| `HOST`                               | Interfaz de red donde escucha la aplicación. El valor de ejemplo es solo para acceso local.                                                        |
+| `PORT`                               | Puerto web; por defecto, 3000. El alojamiento puede asignarlo automáticamente.                                                                     |
+| `GMAIL_USER`                         | Cuenta Gmail remitente para solicitudes de compra de gas.                                                                                          |
+| `GMAIL_APP_PASSWORD`                 | Contraseña de aplicación de Gmail del remitente. Guárdala solo en `.env` o como secreto del alojamiento.                                           |
+| `MAIL_FROM`                          | Dirección visible opcional para los correos; si está vacía, usa `GMAIL_USER`.                                                                      |
+| `PURCHASE_EMAIL`                     | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                     |
+| `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD` | Credenciales provisionales del módulo de demostración GTG.                                                                                         |
 
-El repositorio ya tiene configurado un remoto `origin` para GitHub y la rama de trabajo es `main`. Desde PowerShell, en la carpeta que abres en IntelliJ:
+## Preparar una demo limpia de PrintPilot
+
+El reinicio elimina **todos los datos de la base local `automaince`** y vuelve a crear el esquema, los activos iniciales, los planes de filtros y la cuenta provisional. No lo ejecutes si necesitas conservar registros. Está bloqueado para producción y para bases que no sean `automaince` en localhost. Detén primero `npm start` y ejecuta en CMD o PowerShell:
+
+```text
+npm run db:reset
+npm start
+```
+
+En una segunda ventana de terminal, desde la carpeta del proyecto, ejecuta el guion de presentación:
+
+```text
+npm run demo:printpilot
+```
+
+El guion crea un plan, genera una orden, completa el mantenimiento con su checklist, registra una contramedida, adjunta y vuelve a abrir **Factura reparación.pdf** y **Señal.png**, agrega 10 unidades de tinta, consume 2 y genera un informe. Actualiza el navegador para ver los registros. El guion añade datos de demostración a la base; vuelve a ejecutar `npm run db:reset` para empezar desde cero.
+
+### Verificar Fase 1
+
+`npm test` ejecuta las verificaciones automatizadas. Si está definida `PRINTPILOT_TEST_DATABASE_URL`, incluye también los flujos completos de PostgreSQL. Para ejecutarlos localmente, crea en pgAdmin una base separada llamada `automaince_test` y asígnale como propietario el usuario `automaince`. No apuntes las pruebas a la base de trabajo `automaince` ni a Neon.
+
+En CMD, desde la carpeta del proyecto, define la conexión con la contraseña local que configuraste para PostgreSQL. La variable solo existe en esa ventana de terminal:
+
+```cmd
+set "PRINTPILOT_TEST_DATABASE_URL=postgresql://automaince:TU_CONTRASENA@127.0.0.1:5432/automaince_test"
+npm run test:integration
+```
+
+Las pruebas usan únicamente esa base local separada. Cubren la demo de mantenimiento, cinco órdenes semanales, planes por horas, inicio/cancelación y contador del panel, contramedidas en informes, consumo y costos de insumos, inicio de sesión de técnicos y rechazo de estados no permitidos. Agregan registros de prueba a `automaince_test`; no reinician ni borran su contenido.
+
+## Ver la base de datos
+
+Abre pgAdmin 4 y conéctate al servidor PostgreSQL local con el usuario y la contraseña que configuraste. En el árbol, abre **Databases → automaince → Schemas → public → Tables**. Las tablas aparecen después del primer inicio correcto del servidor AutoMaince.
+
+## Gmail para Compras
+
+El módulo de insumos no registra una orden de gas hasta que el correo se envía. Configura en `.env` el Gmail remitente (`GMAIL_USER`) y su contraseña de aplicación (`GMAIL_APP_PASSWORD`). El destinatario ya está configurado como `printpilot@notions.com.do`; se puede cambiar mediante `PURCHASE_EMAIL`. Nunca compartas ni subas la contraseña de aplicación. Sin esa configuración, la solicitud informa el error y no aparece como enviada.
+
+El botón **Enviar por Gmail** de Contramedidas abre un borrador con el informe para que el usuario revise el destinatario y lo envíe.
+
+## Módulos PrintPilot
+
+- Panel y agenda con mantenimientos de la semana y los próximos 30 días.
+- Activos separados en menú: Aires, Filtros, Impresoras, Hornos y secadoras, Infraestructura y Cortadoras.
+- Plan preventivo de filtros mensual y semestral asociado a los equipos de aire.
+- Registro de mantenimientos completados, checklist obligatorio, técnico, fechas, materiales, horas, costos, hallazgos y recomendaciones.
+- Contramedidas para reparaciones y hallazgos, incluidos cambios electrónicos y repuestos.
+- Insumos de gas y tinta con entradas y consumos; el pedido de gas notifica por email a Compras.
+- Documentos para SDS, manuales, facturas y evidencias (PDF, imágenes, texto y Word hasta 8 MB), almacenados en PostgreSQL.
+- Informes filtrables, exportación CSV, impresión del navegador a PDF, informes por Gmail y bitácora con antes/después.
+- Registro de técnicos con nombre, cédula y empresa.
+
+## PostgreSQL alojado
+
+La conexión del proyecto usa `DATABASE_URL`. En un proveedor PostgreSQL, crea una base y establece `DATABASE_URL` como variable secreta del servidor, y `PGSSLMODE=require` cuando el proveedor requiera TLS. Configura también `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `PURCHASE_EMAIL` en el servidor. Los despliegues que usan almacenamiento efímero necesitan una base PostgreSQL administrada para conservar los datos.
+
+El esquema inicial está en `database/postgres/schema.sql`; el adaptador crea las tablas y carga los datos iniciales de GTG y PrintPilot al arrancar.
+
+## Pruebas
 
 ```powershell
-cd C:\Users\disla\IdeaProjects\automaince
-git status
-git add .
-git commit -m "Organiza el proyecto por empresa"
-git push origin main
+npm test
 ```
 
-Antes de confirmar, revisa `git status` y no subas `.env`, contraseñas reales, llaves ni tokens. `.gitignore` excluye esos archivos y conserva `.env.example` como plantilla. GitHub documenta el flujo para subir un repositorio local con `git add`, `git commit` y `git push`.
+## Fase 2 · Seguridad y solidez (PrintPilot)
 
-La web necesita el **servidor Node**, así que en Render debe ser un **Web Service**, no un Static Site. Si el servicio AutoMaince existente está conectado al repositorio y a la rama `main`, Render puede desplegar automáticamente cada `git push`; revisa el despliegue en su panel y luego abre `https://automaince.onrender.com`. Si el servicio no está conectado, en Render elige **New → Web Service**, conecta el repositorio, deja la raíz en el directorio del proyecto, usa `npm install` como build command y `npm start` como start command, y habilita los despliegues automáticos de `main`.
+| Rol           | Permisos                                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Administrador | Todas las operaciones, incluida la gestión de activos, planes, técnicos y bitácora.                                                                                                                                 |
+| Técnico       | Consulta de operaciones e informes; puede registrar lecturas, mantenimientos, contramedidas, movimientos de insumos y documentos. No puede administrar activos, planes, técnicos, compras ni consultar la bitácora. |
 
-Antes del primer despliegue de esta versión, configura en **Render → servicio → Environment** los valores privados `GTG_DEMO_USER` y `GTG_DEMO_PASSWORD`. En producción el login GTG queda deshabilitado si faltan; no uses la contraseña de demostración local. La página seguirá siendo pública para visitar, aunque el acceso a las funciones de gestión requiere iniciar sesión. Una cuenta provisional no es un sistema de autenticación corporativo.
+Los permisos se validan en el servidor. Los códigos de activos admiten únicamente letras, números y guiones; las acciones de filas usan `data-id` y eventos delegados, sin insertar identificadores en código JavaScript. Tras cinco intentos fallidos de inicio de sesión, el siguiente intento queda bloqueado por 15 minutos. Las sesiones se conservan en PostgreSQL durante ocho horas y el flujo de eventos las autentica con la cabecera `Authorization`.
 
-Con el plan gratuito de Render, una web inactiva puede suspenderse y volver a arrancar cuando recibe otra visita, por lo que la primera carga tras un periodo sin tráfico podría tardar.
+Las escrituras auditadas guardan el cambio y la bitácora dentro de la misma transacción. Las órdenes preventivas se generan cuando inicia el servidor y luego cada hora; consultar el panel o la agenda ya no cambia datos.
 
-## Arquitectura compartida
+`npm test` incluye pruebas de seguridad. Las pruebas que escriben en PostgreSQL requieren que `PRINTPILOT_TEST_DATABASE_URL` apunte a la base local aislada `automaince_test`.
 
-- `frontend/`: interfaz web responsiva, componentes, páginas, estilos y navegación. Es la fuente visual única para web y escritorio.
-- `src/main/java/com/example/automaince/application/`: inicio de JavaFX WebView que carga la interfaz web compartida.
-- `backend/server.js`: servidor HTTP y API REST, que delega las rutas de login en los módulos de empresa.
-- `backend/services/`: reglas compartidas de alertas, órdenes y métricas.
-- `backend/models/`: contratos de entidades del dominio.
-- `database/adapters/localRepository.js`: adaptador para los datos simulados, reemplazable por PostgreSQL, MySQL, SQL Server o una API interna.
-- `data/mock/fleetData.js`: datos simulados intercambiables.
-- `intelligence/`: anomalías y priorización explicables basadas en reglas y estadísticas simples.
-
-## Datos e integración futura
-
-Los datos iniciales viven en `data/mock/fleetData.js`. Para conectar PostgreSQL, MySQL, SQL Server o una API interna, sustituya ese origen por un repositorio/adaptador en `database/adapters/`, conservando las respuestas que consumen los servicios. Esto permite mantener el frontend y la lógica de negocio sin cambios importantes.
-
-## Alcance experimental
-
-El módulo **AutoMaince Intelligence** no pretende ser IA entrenada: explica las anomalías y calcula el riesgo mediante umbrales de consumo, costos, fallas, mantenimiento y documentos. Sus estimaciones no son recomendaciones mecánicas certificadas.
-
-## V2: operación de mantenimiento
-
-La V2 agrega **órdenes de mantenimiento**, separadas de los registros históricos. El flujo de una orden es: `CREADA → PENDIENTE DE REVISIÓN → AUTORIZADA → EN PROCESO → COMPLETADA → CERRADA`. La información sigue siendo temporal durante la ejecución del prototipo; una base de datos conservará los cambios al sustituir el adaptador local.
+La aplicación no contiene ni expone la contraseña de correo. No subas `.env` al repositorio.

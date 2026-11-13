@@ -1,5 +1,9 @@
 target/
 node_modules/
+data/sqlite/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 .env
 .env.*
 !.env.example

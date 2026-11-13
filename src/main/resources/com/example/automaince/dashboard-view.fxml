@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.automaince.DashboardController" spacing="16" styleClass="page">
-  <VBox spacing="4"><Label text="Dashboard" styleClass="page-title"/><Label text="Resumen operativo consultado desde el servidor compartido." styleClass="muted"/></VBox>
-  <HBox spacing="14"><VBox styleClass="kpi-card" HBox.hgrow="ALWAYS"><Label text="Vehículos activos"/><Label fx:id="active" styleClass="kpi-value"/></VBox><VBox styleClass="kpi-card" HBox.hgrow="ALWAYS"><Label text="En mantenimiento"/><Label fx:id="maintenance" styleClass="kpi-value"/></VBox><VBox styleClass="kpi-card" HBox.hgrow="ALWAYS"><Label text="Fuera de servicio"/><Label fx:id="outOfService" styleClass="kpi-value"/></VBox><VBox styleClass="kpi-card" HBox.hgrow="ALWAYS"><Label text="Costo operativo"/><Label fx:id="cost" styleClass="kpi-value"/></VBox></HBox>
-  <HBox spacing="14" VBox.vgrow="ALWAYS"><VBox styleClass="content-card" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS"><Label text="Órdenes recientes" styleClass="section-title"/><TableView fx:id="orders" VBox.vgrow="ALWAYS"/></VBox><VBox styleClass="content-card" prefWidth="350"><Label text="Alertas importantes" styleClass="section-title"/><ListView fx:id="alerts" VBox.vgrow="ALWAYS"/></VBox></HBox>
-</VBox>
