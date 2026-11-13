@@ -35,3 +35,5 @@ jobs:
       - run: npm test
         env:
           PRINTPILOT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/automaince_test
+          NOW_YAIFRYN_PASSWORD: NOW-CI-Yaifryn-Password-2026!
+          NOW_YAN_PASSWORD: NOW-CI-Yan-Password-2026!

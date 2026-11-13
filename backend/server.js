@@ -9,6 +9,8 @@ const { anomalies } = require('../intelligence/anomaly_detection/anomalyService'
 const { risk } = require('../intelligence/prioritization/riskService');
 const orders = require('./services/maintenance_service/maintenanceOrderService');
 const printpilotRoutes = require('./companies/printpilot/routes');
+const nowLogisticsRoutes = require('./companies/now-logistics/routes');
+const nowLogisticsService = require('./companies/now-logistics/service');
 
 const companyAuth = {
   gtg: require('./companies/gtg/auth'),
@@ -276,6 +278,19 @@ const server = http.createServer(async (req, res) => {
         eventClients.set(res, companyId);
         res.on('close', () => eventClients.delete(res));
         return;
+      }
+      if (companyId === 'now') {
+        if (url.pathname === '/api/alerts' && req.method === 'GET')
+          return json(res, 200, await nowLogisticsService.alerts());
+        if (url.pathname.startsWith('/api/now/')) {
+          const handled = await nowLogisticsRoutes.handle(req, res, url, session, parseBody, json);
+          if (handled !== false) {
+            if (['POST', 'PATCH', 'DELETE'].includes(req.method) && res.statusCode < 400)
+              publishChange(companyId);
+            return;
+          }
+        }
+        return json(res, 404, { error: 'Ruta NOW Logistics no encontrada.' });
       }
       if (url.pathname.startsWith('/api/printpilot/')) {
         if (companyId !== 'printpilot')

@@ -43,6 +43,16 @@ const titles = {
   'printpilot-reports': 'Informes',
   'printpilot-audit': 'Bitácora',
   'printpilot-technicians': 'Técnicos',
+  'now-dashboard': 'Panel de control',
+  'now-vehicles': 'Vehículos',
+  'now-maintenance': 'Mantenimientos',
+  'now-fuel': 'Combustible',
+  'now-assignments': 'Asignaciones',
+  'now-repairs': 'Reparaciones',
+  'now-providers': 'Proveedores',
+  'now-alerts': 'Alertas',
+  'now-reports': 'Informes',
+  'now-audit': 'Bitácora',
 };
 let activePage = 'dashboard';
 let updates;
@@ -226,6 +236,7 @@ document.querySelector('.user').addEventListener('click', async () => {
     window.closeDataEvents();
     document.getElementById('workspace').classList.add('hidden');
     document.getElementById('workspace').classList.remove('company-gtg');
+    document.getElementById('workspace').classList.remove('company-now', 'company-printpilot');
     window.showAccessPanel();
   }
 });

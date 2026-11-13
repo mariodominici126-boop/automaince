@@ -247,6 +247,117 @@ CREATE TABLE IF NOT EXISTS asset_readings (
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS now_providers (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  name TEXT NOT NULL,
+  tax_id TEXT NOT NULL DEFAULT '',
+  certified BOOLEAN NOT NULL DEFAULT false,
+  services TEXT[] NOT NULL DEFAULT '{}',
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(company_id, tax_id),
+  UNIQUE(company_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS now_vehicles (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  name TEXT NOT NULL,
+  vehicle_type TEXT NOT NULL,
+  brand TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  last_maintenance DATE,
+  next_maintenance DATE,
+  status TEXT NOT NULL DEFAULT 'ACTIVO' CHECK (status IN ('ACTIVO','MANTENIMIENTO','FUERA DE SERVICIO')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(company_id, id)
+);
+CREATE INDEX IF NOT EXISTS now_vehicles_due_idx ON now_vehicles(company_id, next_maintenance);
+
+CREATE TABLE IF NOT EXISTS now_maintenance_records (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  vehicle_id TEXT NOT NULL,
+  request_date DATE,
+  planned_date DATE,
+  execution_date DATE,
+  vehicle_type TEXT NOT NULL DEFAULT '',
+  brand TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  last_maintenance DATE,
+  next_maintenance DATE,
+  maintenance_type TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '',
+  provider_id TEXT,
+  execution_location TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'SOLICITADO' CHECK (status IN ('SOLICITADO','PROGRAMADO','COMPLETADO','CANCELADO')),
+  subcontracted BOOLEAN NOT NULL DEFAULT false,
+  subcontract_reason TEXT NOT NULL DEFAULT '',
+  cost NUMERIC NOT NULL DEFAULT 0 CHECK (cost >= 0),
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY(company_id, vehicle_id) REFERENCES now_vehicles(company_id, id),
+  FOREIGN KEY(company_id, provider_id) REFERENCES now_providers(company_id, id)
+);
+CREATE INDEX IF NOT EXISTS now_maintenance_vehicle_idx ON now_maintenance_records(company_id, vehicle_id, request_date DESC);
+CREATE INDEX IF NOT EXISTS now_maintenance_schedule_idx ON now_maintenance_records(company_id, planned_date, status);
+
+CREATE TABLE IF NOT EXISTS now_repairs (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  vehicle_id TEXT NOT NULL,
+  repair_date DATE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  cost NUMERIC NOT NULL DEFAULT 0 CHECK (cost >= 0),
+  warranty TEXT NOT NULL DEFAULT '',
+  provider_id TEXT,
+  subcontracted BOOLEAN NOT NULL DEFAULT false,
+  subcontract_reason TEXT NOT NULL DEFAULT '',
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY(company_id, vehicle_id) REFERENCES now_vehicles(company_id, id),
+  FOREIGN KEY(company_id, provider_id) REFERENCES now_providers(company_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS now_fuel_records (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  vehicle_id TEXT NOT NULL,
+  record_date DATE NOT NULL,
+  liters NUMERIC NOT NULL CHECK (liters > 0),
+  cost NUMERIC NOT NULL DEFAULT 0 CHECK (cost >= 0),
+  mileage NUMERIC CHECK (mileage >= 0),
+  dispenser TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY(company_id, vehicle_id) REFERENCES now_vehicles(company_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS now_transport_assignments (
+  id TEXT PRIMARY KEY,
+  company_id TEXT NOT NULL REFERENCES companies(id),
+  vehicle_id TEXT NOT NULL,
+  assignment_date DATE NOT NULL,
+  assigned_to TEXT NOT NULL,
+  origin TEXT NOT NULL DEFAULT '',
+  destination TEXT NOT NULL DEFAULT '',
+  details TEXT NOT NULL DEFAULT '',
+  provider_id TEXT,
+  subcontracted BOOLEAN NOT NULL DEFAULT false,
+  subcontract_reason TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'ASIGNADO' CHECK (status IN ('ASIGNADO','EN RUTA','COMPLETADO','CANCELADO')),
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY(company_id, vehicle_id) REFERENCES now_vehicles(company_id, id),
+  FOREIGN KEY(company_id, provider_id) REFERENCES now_providers(company_id, id)
+);
+CREATE INDEX IF NOT EXISTS now_assignments_date_idx ON now_transport_assignments(company_id, assignment_date DESC);
+
 -- En bases creadas antes de estas validaciones, imponerlas a las escrituras nuevas
 -- sin bloquear el arranque por registros históricos que ya contengan valores antiguos.
 DO $$ BEGIN

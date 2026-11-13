@@ -39,18 +39,19 @@ La primera ejecución crea el esquema y carga los 19 activos del inventario PDF.
 
 ### Variables de configuración (`.env`)
 
-| Variable                             | Para qué sirve                                                                                                                                     |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                       | Conexión PostgreSQL usada por la aplicación. En local apunta a `127.0.0.1:5432/automaince`; en alojamiento se configura como secreto del servicio. |
-| `PGSSLMODE`                          | Usa `require` si el proveedor PostgreSQL exige conexión TLS; déjala vacía para PostgreSQL local.                                                   |
-| `PGPOOL_SIZE`                        | Máximo de conexiones simultáneas del servidor a PostgreSQL; por defecto, 10.                                                                       |
-| `HOST`                               | Interfaz de red donde escucha la aplicación. El valor de ejemplo es solo para acceso local.                                                        |
-| `PORT`                               | Puerto web; por defecto, 3000. El alojamiento puede asignarlo automáticamente.                                                                     |
-| `GMAIL_USER`                         | Cuenta Gmail remitente para solicitudes de compra de gas.                                                                                          |
-| `GMAIL_APP_PASSWORD`                 | Contraseña de aplicación de Gmail del remitente. Guárdala solo en `.env` o como secreto del alojamiento.                                           |
-| `MAIL_FROM`                          | Dirección visible opcional para los correos; si está vacía, usa `GMAIL_USER`.                                                                      |
-| `PURCHASE_EMAIL`                     | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                     |
-| `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD` | Credenciales provisionales del módulo de demostración GTG.                                                                                         |
+| Variable                                   | Para qué sirve                                                                                                                                           |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                             | Conexión PostgreSQL usada por la aplicación. En local apunta a `127.0.0.1:5432/automaince`; en alojamiento se configura como secreto del servicio.       |
+| `PGSSLMODE`                                | Usa `require` si el proveedor PostgreSQL exige conexión TLS; déjala vacía para PostgreSQL local.                                                         |
+| `PGPOOL_SIZE`                              | Máximo de conexiones simultáneas del servidor a PostgreSQL; por defecto, 10.                                                                             |
+| `HOST`                                     | Interfaz de red donde escucha la aplicación. El valor de ejemplo es solo para acceso local.                                                              |
+| `PORT`                                     | Puerto web; por defecto, 3000. El alojamiento puede asignarlo automáticamente.                                                                           |
+| `GMAIL_USER`                               | Cuenta Gmail remitente para solicitudes de compra de gas.                                                                                                |
+| `GMAIL_APP_PASSWORD`                       | Contraseña de aplicación de Gmail del remitente. Guárdala solo en `.env` o como secreto del alojamiento.                                                 |
+| `MAIL_FROM`                                | Dirección visible opcional para los correos; si está vacía, usa `GMAIL_USER`.                                                                            |
+| `PURCHASE_EMAIL`                           | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                           |
+| `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD`       | Credenciales provisionales del módulo de demostración GTG.                                                                                               |
+| `NOW_YAIFRYN_PASSWORD`, `NOW_YAN_PASSWORD` | Contraseñas iniciales individuales (mínimo 12 caracteres) para los dos usuarios autorizados de NOW Logistics. Se guardan como hash scrypt en PostgreSQL. |
 
 ## Preparar una demo limpia de PrintPilot
 
@@ -103,6 +104,16 @@ El botón **Enviar por Gmail** de Contramedidas abre un borrador con el informe 
 - Documentos para SDS, manuales, facturas y evidencias (PDF, imágenes, texto y Word hasta 8 MB), almacenados en PostgreSQL.
 - Informes filtrables, exportación CSV, impresión del navegador a PDF, informes por Gmail y bitácora con antes/después.
 - Registro de técnicos con nombre, cédula y empresa.
+
+## NOW Logistics · Flota y mantenimiento
+
+El espacio de NOW Logistics utiliza una sola página para sus ocho unidades. El inventario inicial incluye F9, F5, F4, F12, F13, F14, F15 y el monta carga; marca y modelo quedan pendientes hasta recibir esos datos. Las fechas proporcionadas de último y próximo mantenimiento se precargan como registros iniciales; las unidades sin fechas generan una alerta para completar su historial.
+
+El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son sus cédulas; configura contraseñas iniciales individuales mediante `NOW_YAIFRYN_PASSWORD` y `NOW_YAN_PASSWORD` en `.env` local y en los secretos del servicio Render. Cada contraseña debe tener al menos 12 caracteres. Al reiniciar la aplicación por primera vez con esos valores, crea las cuentas como administradores; las contraseñas se almacenan con hash scrypt. No publiques las contraseñas ni las incluyas en GitHub.
+
+El menú NOW contiene mantenimiento preventivo trimestral, combustible, asignaciones de unidades, reparaciones con costo y garantía, proveedores certificados, alertas, informes y bitácora. Las alertas muestran vencimientos y permiten reprogramarlos, creando el historial de solicitud. Las subcontrataciones requieren motivo (costo o ausencia de unidades) y un proveedor certificado activo. El proveedor inicial es SOLUCIONES AUTOMOTRICES SEGURA SRL, RNC 1-30-57318-2.
+
+Las pruebas PostgreSQL de NOW se ejecutan junto con las de Fase 0 y 1 mediante `npm run test:integration`. Utiliza únicamente la base local aislada `automaince_test`.
 
 ## PostgreSQL alojado
 

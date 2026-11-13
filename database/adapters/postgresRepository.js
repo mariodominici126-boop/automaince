@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { randomBytes, scrypt } = require('crypto');
+const { promisify } = require('util');
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://automaince:automaince_dev@127.0.0.1:5432/automaince';
@@ -14,6 +16,96 @@ const companies = [
 const collections = ['vehicles', 'drivers', 'maintenance', 'maintenanceOrders', 'fuel', 'repairs', 'parts', 'documents'];
 const root = path.resolve(__dirname, '../..');
 let initialized = false;
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password) {
+  if (typeof password !== 'string' || password.trim().length < 12)
+    throw new Error('Las contraseñas iniciales de NOW deben tener al menos 12 caracteres.');
+  const salt = randomBytes(16).toString('hex');
+  const hash = await scryptAsync(password, salt, 64);
+  return `scrypt$${salt}$${hash.toString('hex')}`;
+}
+
+async function seedNowLogistics() {
+  const provider = {
+    id: 'NOW-PROVIDER-SEGURA',
+    name: 'SOLUCIONES AUTOMOTRICES SEGURA SRL',
+    taxId: '1-30-57318-2',
+  };
+  const vehicles = [
+    { id: 'F9', name: 'Cabezote (ID F9)', type: 'Cabezote' },
+    { id: 'F5', name: 'Camión de 26 pies (ID F5)', type: 'Camión de 26 pies' },
+    { id: 'F4', name: 'Camión de 16 pies (ID F4)', type: 'Camión de 16 pies' },
+    { id: 'F12', name: 'Mini van (ID F12)', type: 'Mini van', last: '2026-09-08', next: '2026-12-08' },
+    { id: 'F13', name: 'Mini van (ID F13)', type: 'Mini van', last: '2026-11-12', next: '2027-02-12' },
+    { id: 'F14', name: 'Mini van (ID F14)', type: 'Mini van', last: '2026-09-03', next: '2026-12-03' },
+    { id: 'F15', name: 'Mini van (ID F15)', type: 'Mini van', last: '2026-09-11', next: '2026-12-11' },
+    { id: 'NOW-MONTACARGA-01', name: 'Monta carga', type: 'Monta carga', last: '2026-10-27', next: '2027-01-27' },
+  ];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO now_providers(id,company_id,name,tax_id,certified,services)
+       VALUES($1,'now',$2,$3,true,ARRAY['MANTENIMIENTO','TRANSPORTE'])
+       ON CONFLICT(company_id,tax_id) DO NOTHING`,
+      [provider.id, provider.name, provider.taxId],
+    );
+    for (const vehicle of vehicles) {
+      await client.query(
+        `INSERT INTO now_vehicles(id,company_id,name,vehicle_type,last_maintenance,next_maintenance)
+         VALUES($1,'now',$2,$3,$4,$5) ON CONFLICT(company_id,id) DO NOTHING`,
+        [vehicle.id, vehicle.name, vehicle.type, vehicle.last || null, vehicle.next || null],
+      );
+      if (vehicle.last) {
+        await client.query(
+          `INSERT INTO now_maintenance_records(
+             id,company_id,vehicle_id,request_date,planned_date,execution_date,vehicle_type,
+             last_maintenance,next_maintenance,maintenance_type,details,provider_id,
+             execution_location,status
+           ) VALUES($1,'now',$2,NULL,$3,$3,$4,$3,$5,'Mantenimiento preventivo',
+             'Registro inicial de fecha proporcionada por NOW Logistics; detalles pendientes.',
+             NULL,'Pendiente de confirmar','COMPLETADO') ON CONFLICT(id) DO NOTHING`,
+          [`NOW-MT-INITIAL-${vehicle.id}`, vehicle.id, vehicle.last, vehicle.type, vehicle.next],
+        );
+      }
+    }
+    await client.query(
+      `INSERT INTO schema_migrations(id) VALUES('seed-now-logistics-fleet-v1') ON CONFLICT DO NOTHING`,
+    );
+    const initialUsers = [
+      {
+        id: 'NOW-USER-YAIFRYN',
+        username: '07105563211',
+        name: 'Yaifryn López Sánchez',
+        nationalId: '07105563211',
+        password: process.env.NOW_YAIFRYN_PASSWORD,
+      },
+      {
+        id: 'NOW-USER-YAN',
+        username: '40214552362',
+        name: 'Yan Luis La Hoz',
+        nationalId: '40214552362',
+        password: process.env.NOW_YAN_PASSWORD,
+      },
+    ];
+    for (const user of initialUsers) {
+      if (!user.password) continue;
+      await client.query(
+        `INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
+         VALUES($1,'now',$2,$3,$4,'NOW Logistics',$5,'ADMINISTRADOR')
+         ON CONFLICT(company_id,username) DO NOTHING`,
+        [user.id, user.username, user.name, user.nationalId, await hashPassword(user.password)],
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 async function initialize(options = {}) {
   if (initialized) return;
@@ -44,6 +136,7 @@ async function initialize(options = {}) {
     } finally { client.release(); }
   }
   await seedPrintPilot();
+  await seedNowLogistics();
   initialized = true;
 }
 

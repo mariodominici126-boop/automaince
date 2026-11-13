@@ -46,7 +46,7 @@ const browserGlobals = Object.fromEntries(
 module.exports = [
   { ignores: ['node_modules/**', 'target/**'] },
   {
-    files: ['backend/server.js', 'backend/companies/printpilot/**/*.js', 'tests/**/*.js'],
+    files: ['backend/server.js', 'backend/companies/**/*.js', 'tests/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'commonjs',
@@ -55,7 +55,7 @@ module.exports = [
     rules: { 'no-undef': 'error' },
   },
   {
-    files: ['frontend/companies/printpilot/**/*.js', 'frontend/utils/app.js'],
+    files: ['frontend/companies/**/*.js', 'frontend/utils/app.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'script',

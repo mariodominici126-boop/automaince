@@ -1,20 +1,302 @@
-.company-now .company-logo-image{background:transparent!important;padding:0}
-.company-now .company-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
-.login-now .login-logo-image{background:transparent!important;border:0;box-shadow:none;padding:0;border-radius:0;width:250px;height:126px;margin-bottom:26px}
-.login-now .login-logo-image img{max-width:100%;max-height:100%;object-fit:contain}
-.login-now{font-family:"Proxima Nova","Segoe UI",Arial,sans-serif;background:#f7f8fa}
-.login-now .login-brand-panel{background:linear-gradient(145deg,#171c38 0%,#232e62 58%,#304478 100%);padding:30px clamp(28px,5vw,72px)}
-.login-now .login-brand-panel:before,.login-now .login-brand-panel:after{width:440px;height:440px;right:-240px;bottom:-210px;border-color:#9eb5fa30;border-radius:50%;background:transparent;transform:none;z-index:0}
-.login-now .login-brand-panel:before{width:330px;height:330px;right:-182px;bottom:-154px}
-.login-now .login-brand-content{z-index:1}
-.login-now .login-label{color:#aebcff;letter-spacing:2px}
-.login-now .login-brand-content h1{font-family:"Futura PT","Trebuchet MS",sans-serif;font-size:clamp(34px,4.2vw,54px);text-transform:uppercase;letter-spacing:1.2px;line-height:1.04}
-.login-now .login-brand-content p{color:#d1d8eb}
-.login-now .login-panel-foot{color:#aab5d5}
-.login-now .login-panel-foot i{color:#9fb6ff}
-.login-now .login-form-wrap h2{color:#252d52}
-.login-now .company-login-form input:focus{border-color:#465eae;box-shadow:0 0 0 3px #465eae1a}
-.login-now .login-submit{background:#252b50;border-radius:3px}
-.login-now .login-submit:hover{background:#34477f}
-.login-now .login-demo button{color:#394f97}
-@media(max-width:650px){.login-now .login-brand-panel{padding:18px 22px}.login-now .login-logo-image{width:142px;height:70px;margin-bottom:13px}.login-now .login-brand-content h1{font-size:25px;letter-spacing:.5px}}
+.company-now .company-logo-image {
+  background: transparent !important;
+  padding: 0;
+}
+.company-now .company-logo-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.login-now .login-logo-image {
+  background: transparent !important;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  width: 250px;
+  height: 126px;
+  margin-bottom: 26px;
+}
+.login-now .login-logo-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.login-now {
+  font-family: 'Proxima Nova', 'Segoe UI', Arial, sans-serif;
+  background: #f7f8fa;
+}
+.login-now .login-brand-panel {
+  background: linear-gradient(145deg, #171c38 0%, #232e62 58%, #304478 100%);
+  padding: 30px clamp(28px, 5vw, 72px);
+}
+.login-now .login-brand-panel:before,
+.login-now .login-brand-panel:after {
+  width: 440px;
+  height: 440px;
+  right: -240px;
+  bottom: -210px;
+  border-color: #9eb5fa30;
+  border-radius: 50%;
+  background: transparent;
+  transform: none;
+  z-index: 0;
+}
+.login-now .login-brand-panel:before {
+  width: 330px;
+  height: 330px;
+  right: -182px;
+  bottom: -154px;
+}
+.login-now .login-brand-content {
+  z-index: 1;
+}
+.login-now .login-label {
+  color: #aebcff;
+  letter-spacing: 2px;
+}
+.login-now .login-brand-content h1 {
+  font-family: 'Futura PT', 'Trebuchet MS', sans-serif;
+  font-size: clamp(34px, 4.2vw, 54px);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  line-height: 1.04;
+}
+.login-now .login-brand-content p {
+  color: #d1d8eb;
+}
+.login-now .login-panel-foot {
+  color: #aab5d5;
+}
+.login-now .login-panel-foot i {
+  color: #9fb6ff;
+}
+.login-now .login-form-wrap h2 {
+  color: #252d52;
+}
+.login-now .company-login-form input:focus {
+  border-color: #465eae;
+  box-shadow: 0 0 0 3px #465eae1a;
+}
+.login-now .login-submit {
+  background: #252b50;
+  border-radius: 3px;
+}
+.login-now .login-submit:hover {
+  background: #34477f;
+}
+.login-now .login-demo button {
+  color: #394f97;
+}
+@media (max-width: 650px) {
+  .login-now .login-brand-panel {
+    padding: 18px 22px;
+  }
+  .login-now .login-logo-image {
+    width: 142px;
+    height: 70px;
+    margin-bottom: 13px;
+  }
+  .login-now .login-brand-content h1 {
+    font-size: 25px;
+    letter-spacing: 0.5px;
+  }
+}
+
+.workspace.company-now {
+  --ink: #202a43;
+  --muted: #778198;
+  --line: #e4e8ef;
+  --panel: #fff;
+  --bg: #f4f6fa;
+  --teal: #26386e;
+  --nav: #17203b;
+  --red: #cb3c4b;
+  --yellow: #d49b2a;
+  --green: #278a69;
+}
+.workspace.company-now aside {
+  background: linear-gradient(180deg, #151d37, #222f53);
+  overflow-y: auto;
+}
+.workspace.company-now .brand {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 3px 18px;
+  padding: 12px;
+  border-radius: 9px;
+  background: #fff;
+}
+.workspace.company-now .brand-company-logo {
+  width: 100%;
+  height: 58px;
+  object-fit: contain;
+}
+.workspace.company-now .brand-app-name {
+  display: none;
+}
+.workspace.company-now aside .eyebrow {
+  color: #a6b5da;
+}
+.workspace.company-now nav button {
+  color: #c0c9df;
+  border-radius: 6px;
+}
+.workspace.company-now nav button:hover,
+.workspace.company-now nav button.active {
+  color: #fff;
+  background: #344a83;
+}
+.workspace.company-now .sidebar-foot {
+  position: sticky;
+  margin-top: 16px;
+  padding: 14px 10px 0;
+  color: #9aa8cb;
+  bottom: 0;
+}
+.workspace.company-now .workspace-company {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  color: #56627b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.workspace.company-now .workspace-company i {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 24px;
+  border-radius: 4px;
+  background: #26386e;
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+}
+.workspace.company-now .user {
+  color: #fff;
+  background: #26386e;
+}
+.workspace.company-now .btn {
+  background: #26386e;
+}
+.workspace.company-now .btn:hover {
+  background: #172754;
+}
+.workspace.company-now .text-button,
+.workspace.company-now .table-action {
+  color: #26386e;
+}
+.workspace.company-now .card {
+  border-radius: 9px;
+  box-shadow: 0 4px 16px #1f2b4a08;
+}
+.workspace.company-now .now-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 17px;
+}
+.workspace.company-now .now-heading h2 {
+  margin: 3px 0 6px;
+  font-size: 25px;
+}
+.workspace.company-now .now-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+.workspace.company-now .now-eyebrow {
+  color: #53699f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+}
+.workspace.company-now .now-top-space {
+  margin-top: 17px;
+}
+.workspace.company-now .now-dashboard-grid {
+  grid-template-columns: 1.35fr 0.8fr;
+  margin-top: 17px;
+}
+.workspace.company-now .now-report-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+.workspace.company-now .now-report-grid b {
+  display: block;
+  font-size: 27px;
+  margin: 8px 0;
+}
+.workspace.company-now .now-alert-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.workspace.company-now .now-alert-card {
+  border-left: 4px solid #d49b2a;
+}
+.workspace.company-now .now-alert-card.overdue {
+  border-left-color: #cb3c4b;
+}
+.workspace.company-now .now-alert-card h3 {
+  margin: 9px 0 0;
+  font-size: 15px;
+}
+.workspace.company-now .now-alert-card p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+.workspace.company-now .now-alert-card time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.workspace.company-now .now-badge {
+  background: #edf1f9;
+  color: #344a83;
+}
+.workspace.company-now .now-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace.company-now .now-check input {
+  width: auto;
+}
+.workspace.company-now .now-modal {
+  max-height: 78vh;
+  overflow: auto;
+}
+.workspace.company-now td small {
+  display: block;
+  margin-top: 4px;
+}
+@media (max-width: 900px) {
+  .workspace.company-now .brand {
+    margin: 0 0 14px;
+    padding: 6px 4px;
+  }
+  .workspace.company-now .brand-company-logo {
+    height: 36px;
+  }
+  .workspace.company-now .workspace-company {
+    display: none;
+  }
+  .workspace.company-now .now-report-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .workspace.company-now .now-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 650px) {
+  .workspace.company-now .now-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .workspace.company-now .now-alert-grid,
+  .workspace.company-now .now-report-grid {
+    grid-template-columns: 1fr;
+  }
+  .workspace.company-now .table-card {
+    overflow-x: auto;
+  }
+}
