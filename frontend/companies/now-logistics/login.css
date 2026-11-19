@@ -109,7 +109,7 @@
   --line: #e4e8ef;
   --panel: #fff;
   --bg: #f4f6fa;
-  --teal: #26386e;
+  --teal: #168d81;
   --nav: #17203b;
   --red: #cb3c4b;
   --yellow: #d49b2a;
@@ -146,7 +146,7 @@
 .workspace.company-now nav button:hover,
 .workspace.company-now nav button.active {
   color: #fff;
-  background: #344a83;
+  background: #276e68;
 }
 .workspace.company-now .sidebar-foot {
   position: sticky;
@@ -169,24 +169,70 @@
   width: 32px;
   height: 24px;
   border-radius: 4px;
-  background: #26386e;
+  background: #168d81;
   color: #fff;
   font-size: 9px;
   font-style: normal;
 }
 .workspace.company-now .user {
   color: #fff;
-  background: #26386e;
+  background: #168d81;
 }
 .workspace.company-now .btn {
-  background: #26386e;
+  background: #168d81;
 }
 .workspace.company-now .btn:hover {
-  background: #172754;
+  background: #0f746b;
+}
+.workspace.company-now .btn.secondary {
+  border-color: #b9d8d3;
+  background: #fff;
+  color: #14796f;
+}
+.workspace.company-now .btn.secondary:hover {
+  background: #eef8f6;
 }
 .workspace.company-now .text-button,
 .workspace.company-now .table-action {
-  color: #26386e;
+  color: #168d81;
+}
+.workspace.company-now .now-kpi-link {
+  width: 100%;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+.workspace.company-now .now-kpi-link:hover {
+  border-color: #9bcfc7;
+  box-shadow: 0 10px 26px #173e3920;
+  transform: translateY(-2px);
+}
+.workspace.company-now .now-kpi-link:focus-visible {
+  outline: 3px solid #168d8155;
+  outline-offset: 2px;
+}
+.workspace.company-now .now-kpi-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  color: #168d81;
+  font-size: 11px;
+  font-weight: 750;
+}
+.workspace.company-now .now-kpi-hint i {
+  font-size: 15px;
+  font-style: normal;
+  transition: transform 180ms ease;
+}
+.workspace.company-now .now-kpi-link:hover .now-kpi-hint i {
+  transform: translateX(3px);
 }
 .workspace.company-now .card {
   border-radius: 9px;

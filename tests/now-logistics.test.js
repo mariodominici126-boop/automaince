@@ -21,7 +21,11 @@ test('la interfaz NOW presenta todas las unidades y no hereda el menú de maquin
   assert.match(html, /now-logistics\/screens\/vehicles\.js/);
   assert.match(html, /now-logistics\/workspace\.js/);
   const vehiclesPage = fs.readFileSync(path.join(root, 'screens/vehicles.js'), 'utf8');
+  const dashboardPage = fs.readFileSync(path.join(root, 'screens/dashboard.js'), 'utf8');
   assert.match(vehiclesPage, /\/api\/now\/vehicles/);
   assert.match(vehiclesPage, /v\.name/);
   assert.doesNotMatch(vehiclesPage, /printpilotPages|PP-AIR|IMPRESORAS/);
+  assert.match(dashboardPage, /navigate\('now-vehicles'\)/);
+  assert.match(dashboardPage, /navigate\('now-maintenance'\)/);
+  assert.match(dashboardPage, /navigate\('now-alerts'\)/);
 });
