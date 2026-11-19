@@ -129,7 +129,7 @@ async function migrateGtgPickupVehicles() {
       await client.query(
         `UPDATE app_records
          SET payload=(payload - 'baseConsumption' - 'recentConsumption') ||
-             jsonb_build_object('brand',$1,'model',$2,'type','Camioneta'),
+             jsonb_build_object('brand',$1::text,'model',$2::text,'type','Camioneta'),
              updated_at=now()
          WHERE company_id='gtg' AND collection='vehicles' AND record_id=$3`,
         [vehicle.brand, vehicle.model, String(vehicle.id)],
