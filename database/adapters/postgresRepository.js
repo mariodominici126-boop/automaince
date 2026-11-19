@@ -76,18 +76,18 @@ async function seedNowLogistics() {
     const initialUsers = [
       {
         id: 'NOW-USER-YAIFRYN',
-        username: 'yaifryn.lopez.sanchez',
+        username: 'yaifrynlo',
         name: 'Yaifryn López Sánchez',
         nationalId: '07105563211',
       },
       {
         id: 'NOW-USER-YAN',
-        username: 'yan.luis.la.hoz',
+        username: 'yanhoz',
         name: 'Yan Luis La Hoz',
         nationalId: '40214552362',
       },
     ];
-    const adminCredentialsMigration = 'seed-now-admin-name-login-v1';
+    const adminCredentialsMigration = 'seed-now-admin-short-login-v2';
     const migratedAdmins = await client.query('SELECT 1 FROM schema_migrations WHERE id=$1', [adminCredentialsMigration]);
     if (!migratedAdmins.rowCount) {
       for (const user of initialUsers) {

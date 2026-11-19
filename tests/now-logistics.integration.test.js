@@ -52,11 +52,11 @@ test(
       assert.ok(provider.services.includes('TRANSPORTE'));
 
       const yaifryn = await auth.authenticate({
-        username: 'Yaifryn Lopez Sanchez',
+        username: 'Yaifrynlo',
         password: '07105563211',
       });
       const yan = await auth.authenticate({
-        username: 'Yan Luis La Hoz',
+        username: 'Yanhoz',
         password: '40214552362',
       });
       const outsider = await auth.authenticate({

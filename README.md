@@ -108,7 +108,7 @@ El botón **Enviar por Gmail** de Contramedidas abre un borrador con el informe 
 
 El espacio de NOW Logistics utiliza una sola página para sus ocho unidades. El inventario inicial incluye F9, F5, F4, F12, F13, F14, F15 y el monta carga; marca y modelo quedan pendientes hasta recibir esos datos. Las fechas proporcionadas de último y próximo mantenimiento se precargan como registros iniciales; las unidades sin fechas generan una alerta para completar su historial.
 
-El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son `yaifryn.lopez.sanchez` y `yan.luis.la.hoz`; la contraseña inicial de cada uno es su propia cédula. En la primera inicialización, el sistema crea o actualiza ambas cuentas como administradores y guarda las contraseñas con hash scrypt en PostgreSQL. No es necesario configurar variables NOW en `.env`.
+El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son `yaifrynlo` y `yanhoz`; la contraseña inicial de cada uno es su propia cédula. En la primera inicialización, el sistema crea o actualiza ambas cuentas como administradores y guarda las contraseñas con hash scrypt en PostgreSQL. No es necesario configurar variables NOW en `.env`.
 
 El menú NOW contiene mantenimiento preventivo trimestral, combustible, asignaciones de unidades, reparaciones con costo y garantía, proveedores certificados, alertas, informes y bitácora. Las alertas muestran vencimientos y permiten reprogramarlos, creando el historial de solicitud. Las subcontrataciones requieren motivo (costo o ausencia de unidades) y un proveedor certificado activo. El proveedor inicial es SOLUCIONES AUTOMOTRICES SEGURA SRL, RNC 1-30-57318-2.
 

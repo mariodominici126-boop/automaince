@@ -2,8 +2,8 @@ const { scrypt, timingSafeEqual } = require('crypto');
 const repository = require('../../../database/adapters/postgresRepository');
 
 const authorizedUsers = [
-  { username: 'yaifryn.lopez.sanchez', nationalId: '07105563211' },
-  { username: 'yan.luis.la.hoz', nationalId: '40214552362' },
+  { username: 'yaifrynlo', nationalId: '07105563211' },
+  { username: 'yanhoz', nationalId: '40214552362' },
 ];
 const normalizeUsername = (value) =>
   String(value || '')

@@ -57,12 +57,12 @@ window.showCompanyLogin = function (companyId) {
     </div>
     <section class="login-form-panel"><div class="login-form-wrap"><span class="access-kicker">ACCESO SEGURO</span><h2>${company.welcome}</h2><p class="login-subtitle">Ingresa con las credenciales asignadas a tu equipo.</p>
       <form class="company-login-form" data-company-login="${companyId}">
-        <label>${companyId === 'now' ? 'Nombre de usuario' : 'Usuario o correo'}<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="${companyId === 'now' ? 'Nombre y apellidos sin tildes' : 'nombre@empresa.com'}" required></label>
+        <label>${companyId === 'now' ? 'Nombre de usuario' : 'Usuario o correo'}<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="${companyId === 'now' ? 'yaifrynlo o yanhoz' : 'nombre@empresa.com'}" required></label>
         <label>Contraseña<span class="password-wrap"><input name="password" type="password" autocomplete="current-password" placeholder="Escribe tu contraseña" required><span aria-hidden="true">◉</span></span></label>
         <button class="login-submit" type="submit">Iniciar sesión <span>→</span></button>
         <p class="login-feedback" role="status" aria-live="polite"></p>
       </form>
-      <p class="login-auth-note">${companyId === 'gtg' ? 'Acceso provisional GTG habilitado para revisión del sistema.' : companyId === 'printpilot' ? 'Cuenta provisional de PrintPilot habilitada para iniciar.' : companyId === 'now' ? 'Acceso reservado a Yaifryn López Sánchez y Yan Luis La Hoz. Contraseña inicial: la cédula de cada encargado.' : `La autenticación de ${company.shortName} aún requiere conectar su servicio empresarial.`}</p>
+      <p class="login-auth-note">${companyId === 'gtg' ? 'Acceso provisional GTG habilitado para revisión del sistema.' : companyId === 'printpilot' ? 'Cuenta provisional de PrintPilot habilitada para iniciar.' : companyId === 'now' ? 'Usuarios: yaifrynlo y yanhoz. Contraseña inicial: la cédula de cada encargado.' : `La autenticación de ${company.shortName} aún requiere conectar su servicio empresarial.`}</p>
     </div></section>
   </main>`;
   root.querySelector('[data-back-to-companies]').addEventListener('click', window.showAccessPanel);
