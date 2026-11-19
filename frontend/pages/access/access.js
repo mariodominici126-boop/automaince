@@ -8,25 +8,42 @@ window.showAccessPanel = function () {
   document.getElementById('workspace').classList.add('hidden');
   const root = document.getElementById('accessPortal');
   root.innerHTML = `<main class="access-page">
-    <div class="access-topbar"><a class="access-brand" href="#" aria-label="AutoMaince inicio"><span>◈</span> Auto<span>Maince</span></a><span class="access-status">PANEL DE ACCESO</span></div>
-    <section class="access-hero">
-      <div class="access-copy"><span class="access-kicker"><b></b> MANTENIMIENTO</span>
-        <h1>Mantenimiento de flota</h1>
-        <p>Selecciona una empresa para continuar.</p>
-      </div>
-      <div class="banner-notions">${accessLogo(accessCompanies.notions, 'banner-notions-logo')}</div>
-    </section>
-    <section class="company-section"><div class="company-heading"><h2 class="company-title">EMPRESAS:</h2><span class="company-count">04</span></div>
-      <div class="company-grid">${Object.entries(accessCompanies).map(([id, company], index) => `<button class="company-card company-${company.theme}" data-open-company="${id}" style="--card-order:${index}" aria-label="Entrar a ${company.name}">
-        <span class="company-card-top"><span class="company-index">0${index + 1}</span><span class="company-arrow">↗</span></span>
-        ${accessLogo({ ...company, logo: company.cardLogo || company.logo }, 'company-logo-image')}
-        <span class="company-card-footer"><span><b>${company.name}</b><small>Acceso al portal</small></span><span class="card-continue">Ingresar <i>→</i></span></span>
-      </button>`).join('')}</div>
-    </section>
-    <footer class="access-footer"><span>AutoMaince <i>·</i> Mantenimiento</span><span>NOTIONS GROUP</span></footer>
+    <div class="landing-wrap">
+      <header class="access-topbar">
+        <a class="master-brand" href="#" aria-label="Notions Group, inicio"><img src="${accessCompanies.notions.logo}" alt="Notions Group"></a>
+        <span class="access-status"><i aria-hidden="true"></i>PANEL DE ACCESO</span>
+      </header>
+      <section class="access-hero" aria-labelledby="access-title">
+        <div class="access-copy"><span class="access-kicker"><b aria-hidden="true"></b>MANTENIMIENTO</span>
+          <h1 id="access-title">Mantenimiento de flota</h1>
+          <p>Selecciona una empresa para continuar.</p>
+        </div>
+      </section>
+      <section class="company-section" aria-labelledby="companies-title">
+        <div class="company-heading"><h2 id="companies-title">EMPRESAS:</h2></div>
+        <div class="company-grid">${Object.entries(accessCompanies)
+          .map(
+            (
+              [id, company],
+              index,
+            ) => `<button class="company-card company-${company.theme}" data-open-company="${id}" style="--card-order:${index}" aria-label="Entrar al portal de ${company.name}">
+          <span class="company-card-top"><span class="company-index">0${index + 1}</span><span class="company-arrow" aria-hidden="true">↗</span></span>
+          ${accessLogo({ ...company, logo: company.cardLogo || company.logo }, 'company-logo-image')}
+          <span class="company-name">${company.name}</span><span class="company-desc">${company.description}</span>
+          <span class="card-continue">Ingresar <i aria-hidden="true">→</i></span>
+        </button>`,
+          )
+          .join('')}</div>
+      </section>
+      <footer class="access-footer"><span>AutoMaince <i>·</i> Mantenimiento</span><span>NOTIONS GROUP</span></footer>
+    </div>
   </main>`;
   root.classList.remove('hidden');
-  root.querySelectorAll('[data-open-company]').forEach(button => button.addEventListener('click', () => window.showCompanyLogin(button.dataset.openCompany)));
+  root
+    .querySelectorAll('[data-open-company]')
+    .forEach((button) =>
+      button.addEventListener('click', () => window.showCompanyLogin(button.dataset.openCompany)),
+    );
 };
 
 window.showCompanyLogin = function (companyId) {
@@ -49,7 +66,7 @@ window.showCompanyLogin = function (companyId) {
     </div></section>
   </main>`;
   root.querySelector('[data-back-to-companies]').addEventListener('click', window.showAccessPanel);
-  root.querySelector('[data-company-login]').addEventListener('submit', async event => {
+  root.querySelector('[data-company-login]').addEventListener('submit', async (event) => {
     event.preventDefault();
     const feedback = root.querySelector('.login-feedback');
     const submit = event.currentTarget.querySelector('.login-submit');
