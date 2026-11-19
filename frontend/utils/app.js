@@ -29,6 +29,7 @@ const titles = {
   alerts: 'Centro de alertas',
   analytics: 'Analytics',
   intelligence: 'AutoMaince Intelligence',
+  'printpilot-assets': 'Activos registrados',
   'printpilot-agenda': 'Semana y mes',
   'printpilot-filters': 'Filtros',
   'printpilot-air': 'Aires',

@@ -295,6 +295,58 @@
 .workspace.company-printpilot .modal-box .form {
   gap: 11px;
 }
+.workspace.company-printpilot .pp-kpi-link {
+  width: 100%;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+.workspace.company-printpilot .pp-kpi-link:hover {
+  border-color: #bbb7ac;
+  box-shadow: 0 10px 27px #28241c14;
+}
+.workspace.company-printpilot .pp-kpi-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  color: #4c6755;
+  font-size: 11px;
+  font-weight: 750;
+}
+.workspace.company-printpilot .pp-kpi-hint i {
+  font-size: 15px;
+  font-style: normal;
+  transition: transform 180ms ease;
+}
+.workspace.company-printpilot .pp-kpi-link:hover .pp-kpi-hint i {
+  transform: translateX(3px);
+}
+.workspace.company-printpilot .pp-asset-categories {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.workspace.company-printpilot .pp-asset-category {
+  display: flex;
+  min-height: 110px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.workspace.company-printpilot .pp-asset-category b {
+  font-size: 25px;
+}
+.workspace.company-printpilot .pp-asset-category small {
+  margin-top: auto;
+  color: #4c6755;
+  font-size: 11px;
+  font-weight: 700;
+}
 @media (max-width: 1000px) {
   .workspace.company-printpilot nav button {
     font-size: 0;
@@ -338,7 +390,15 @@
   .pp-form .wide {
     grid-column: 1;
   }
+  .workspace.company-printpilot .pp-asset-categories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .pp-filters > * {
     flex: 1 1 100%;
+  }
+}
+@media (max-width: 420px) {
+  .workspace.company-printpilot .pp-asset-categories {
+    grid-template-columns: 1fr;
   }
 }

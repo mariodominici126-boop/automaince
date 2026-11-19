@@ -29,6 +29,7 @@
   window.printpilotHelpers = { h, money, ppApi, json, empty, badge };
   const menu = [
     ['dashboard', '▦', 'Panel de control'],
+    ['printpilot-assets', '▣', 'Activos'],
     ['printpilot-agenda', '◷', 'Semana y mes'],
     ['printpilot-filters', '◉', 'Filtros'],
     ['printpilot-air', '❄', 'Aires'],
@@ -49,6 +50,11 @@
   window.printpilotPages = {};
   const appRoot = document.querySelector('#app');
   appRoot?.addEventListener('click', (event) => {
+    const pageLink = event.target.closest('[data-pp-page]');
+    if (pageLink) {
+      window.navigate(pageLink.dataset.ppPage);
+      return;
+    }
     const button = event.target.closest('[data-pp-action]');
     if (!button) return;
     const { ppAction: action, id, status } = button.dataset;
