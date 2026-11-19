@@ -109,7 +109,7 @@
   --line: #e4e8ef;
   --panel: #fff;
   --bg: #f4f6fa;
-  --teal: #168d81;
+  --teal: #999999;
   --nav: #17203b;
   --red: #cb3c4b;
   --yellow: #d49b2a;
@@ -145,8 +145,8 @@
 }
 .workspace.company-now nav button:hover,
 .workspace.company-now nav button.active {
-  color: #fff;
-  background: #276e68;
+  background: #999999;
+  color: #17203b;
 }
 .workspace.company-now .sidebar-foot {
   position: sticky;
@@ -169,32 +169,33 @@
   width: 32px;
   height: 24px;
   border-radius: 4px;
-  background: #168d81;
-  color: #fff;
+  background: #999999;
+  color: #17203b;
   font-size: 9px;
   font-style: normal;
 }
 .workspace.company-now .user {
-  color: #fff;
-  background: #168d81;
+  color: #17203b;
+  background: #999999;
 }
 .workspace.company-now .btn {
-  background: #168d81;
+  background: #999999;
+  color: #17203b;
 }
 .workspace.company-now .btn:hover {
-  background: #0f746b;
+  background: #858585;
 }
 .workspace.company-now .btn.secondary {
-  border-color: #b9d8d3;
+  border-color: #c4c4c4;
   background: #fff;
-  color: #14796f;
+  color: #555;
 }
 .workspace.company-now .btn.secondary:hover {
-  background: #eef8f6;
+  background: #f2f2f2;
 }
 .workspace.company-now .text-button,
 .workspace.company-now .table-action {
-  color: #168d81;
+  color: #646464;
 }
 .workspace.company-now .now-kpi-link {
   width: 100%;
@@ -209,12 +210,12 @@
     transform 180ms ease;
 }
 .workspace.company-now .now-kpi-link:hover {
-  border-color: #9bcfc7;
+  border-color: #b7b7b7;
   box-shadow: 0 10px 26px #173e3920;
   transform: translateY(-2px);
 }
 .workspace.company-now .now-kpi-link:focus-visible {
-  outline: 3px solid #168d8155;
+  outline: 3px solid #99999977;
   outline-offset: 2px;
 }
 .workspace.company-now .now-kpi-hint {
@@ -222,7 +223,7 @@
   align-items: center;
   gap: 4px;
   margin-top: 10px;
-  color: #168d81;
+  color: #646464;
   font-size: 11px;
   font-weight: 750;
 }
