@@ -9,8 +9,6 @@ test(
     assert.ok(new Set(['localhost', '127.0.0.1', '::1', '[::1]']).has(connection.hostname));
     assert.equal(connection.pathname.slice(1), 'automaince_test');
     process.env.DATABASE_URL = process.env.PRINTPILOT_TEST_DATABASE_URL;
-    process.env.NOW_YAIFRYN_PASSWORD = 'NOW-Test-Yaifryn-2026!';
-    process.env.NOW_YAN_PASSWORD = 'NOW-Test-Yan-2026!';
     const repository = require('../database/adapters/postgresRepository');
     const service = require('../backend/companies/now-logistics/service');
     const auth = require('../backend/companies/now-logistics/auth');
@@ -54,12 +52,12 @@ test(
       assert.ok(provider.services.includes('TRANSPORTE'));
 
       const yaifryn = await auth.authenticate({
-        username: '07105563211',
-        password: process.env.NOW_YAIFRYN_PASSWORD,
+        username: 'Yaifryn Lopez Sanchez',
+        password: '07105563211',
       });
       const yan = await auth.authenticate({
-        username: '40214552362',
-        password: process.env.NOW_YAN_PASSWORD,
+        username: 'Yan Luis La Hoz',
+        password: '40214552362',
       });
       const outsider = await auth.authenticate({
         username: '00000000000',
@@ -191,8 +189,6 @@ test(
       );
       assert.ok((await service.auditLog()).length > 0);
     } finally {
-      delete process.env.NOW_YAIFRYN_PASSWORD;
-      delete process.env.NOW_YAN_PASSWORD;
       await repository.close();
     }
   },

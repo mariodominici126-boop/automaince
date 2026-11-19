@@ -32,6 +32,7 @@
     button.title = `${user.displayName || 'NOW Logistics'} · Cerrar sesión`;
     window.connectDataEvents?.();
     window.loadWorkspaceData?.();
+    window.resetWorkspaceHistory?.('now-dashboard');
     window.navigate('now-dashboard');
   };
   const saved = sessionStorage.getItem('automaince.user');

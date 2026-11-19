@@ -19,8 +19,8 @@ let initialized = false;
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password) {
-  if (typeof password !== 'string' || password.trim().length < 12)
-    throw new Error('Las contraseñas iniciales de NOW deben tener al menos 12 caracteres.');
+  if (typeof password !== 'string' || !password.trim())
+    throw new Error('La contraseña no puede estar vacía.');
   const salt = randomBytes(16).toString('hex');
   const hash = await scryptAsync(password, salt, 64);
   return `scrypt$${salt}$${hash.toString('hex')}`;
@@ -76,27 +76,37 @@ async function seedNowLogistics() {
     const initialUsers = [
       {
         id: 'NOW-USER-YAIFRYN',
-        username: '07105563211',
+        username: 'yaifryn.lopez.sanchez',
         name: 'Yaifryn López Sánchez',
         nationalId: '07105563211',
-        password: process.env.NOW_YAIFRYN_PASSWORD,
       },
       {
         id: 'NOW-USER-YAN',
-        username: '40214552362',
+        username: 'yan.luis.la.hoz',
         name: 'Yan Luis La Hoz',
         nationalId: '40214552362',
-        password: process.env.NOW_YAN_PASSWORD,
       },
     ];
-    for (const user of initialUsers) {
-      if (!user.password) continue;
-      await client.query(
-        `INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
-         VALUES($1,'now',$2,$3,$4,'NOW Logistics',$5,'ADMINISTRADOR')
-         ON CONFLICT(company_id,username) DO NOTHING`,
-        [user.id, user.username, user.name, user.nationalId, await hashPassword(user.password)],
-      );
+    const adminCredentialsMigration = 'seed-now-admin-name-login-v1';
+    const migratedAdmins = await client.query('SELECT 1 FROM schema_migrations WHERE id=$1', [adminCredentialsMigration]);
+    if (!migratedAdmins.rowCount) {
+      for (const user of initialUsers) {
+        const passwordHash = await hashPassword(user.nationalId);
+        const updated = await client.query(
+          `UPDATE technicians SET username=$1,name=$2,password_hash=$3,role='ADMINISTRADOR',active=true
+           WHERE company_id='now' AND national_id=$4`,
+          [user.username, user.name, passwordHash, user.nationalId],
+        );
+        if (!updated.rowCount) {
+          await client.query(
+            `INSERT INTO technicians(id,company_id,username,name,national_id,company_name,password_hash,role)
+             VALUES($1,'now',$2,$3,$4,'NOW Logistics',$5,'ADMINISTRADOR')
+             ON CONFLICT(company_id,username) DO NOTHING`,
+            [user.id, user.username, user.name, user.nationalId, passwordHash],
+          );
+        }
+      }
+      await client.query('INSERT INTO schema_migrations(id) VALUES($1) ON CONFLICT DO NOTHING', [adminCredentialsMigration]);
     }
     await client.query('COMMIT');
   } catch (error) {

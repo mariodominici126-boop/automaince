@@ -56,6 +56,7 @@ const titles = {
   'now-audit': 'Bitácora',
 };
 let activePage = 'dashboard';
+let workspaceHistoryIndex = 0;
 let updates;
 window.connectDataEvents = () => {
   window.closeDataEvents();
@@ -105,7 +106,20 @@ window.loadWorkspaceData = () =>
       document.querySelector('#headerAlertCount').textContent = a.length;
     })
     .catch(() => {});
-async function navigate(page) {
+window.resetWorkspaceHistory = function (page) {
+  activePage = page;
+  workspaceHistoryIndex = 0;
+  window.history.replaceState({ autoMaincePage: page, autoMainceIndex: 0 }, '', location.href);
+};
+async function navigate(page, options = {}) {
+  if (options.history !== false && page !== activePage) {
+    workspaceHistoryIndex += 1;
+    window.history.pushState(
+      { autoMaincePage: page, autoMainceIndex: workspaceHistoryIndex },
+      '',
+      location.href,
+    );
+  }
   activePage = page;
   document
     .querySelectorAll('#nav button')
@@ -126,6 +140,12 @@ async function navigate(page) {
   }
 }
 window.navigate = navigate;
+window.addEventListener('popstate', (event) => {
+  const state = event.state;
+  if (!state || typeof state.autoMaincePage !== 'string') return;
+  workspaceHistoryIndex = Number(state.autoMainceIndex) || 0;
+  navigate(state.autoMaincePage, { history: false });
+});
 const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
 const mobileNavScrim = document.querySelector('.mobile-nav-scrim');
 function setMobileNavOpen(open) {
@@ -148,6 +168,53 @@ document.querySelector('#nav').addEventListener('click', (e) => {
     setMobileNavOpen(false);
   }
 });
+let swipeStart;
+const workspaceRoot = document.querySelector('#workspace');
+workspaceRoot.addEventListener(
+  'touchstart',
+  (event) => {
+    if (event.touches.length !== 1) return;
+    const target = event.target;
+    if (
+      target.closest(
+        'input, textarea, select, button, a, [contenteditable="true"], #modal:not(.hidden)',
+      )
+    )
+      return;
+    swipeStart = {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY,
+      menuOpen: workspaceRoot.classList.contains('menu-open'),
+    };
+  },
+  { passive: true },
+);
+workspaceRoot.addEventListener(
+  'touchend',
+  (event) => {
+    if (!swipeStart || event.changedTouches.length !== 1) return;
+    const end = event.changedTouches[0];
+    const deltaX = end.clientX - swipeStart.x;
+    const deltaY = end.clientY - swipeStart.y;
+    const start = swipeStart;
+    swipeStart = undefined;
+    if (Math.abs(deltaX) < 90 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
+    if (start.menuOpen && deltaX < 0 && start.x < 320) {
+      setMobileNavOpen(false);
+      return;
+    }
+    if (!start.menuOpen && deltaX > 0 && start.x <= 22 && workspaceHistoryIndex > 0)
+      window.history.back();
+  },
+  { passive: true },
+);
+workspaceRoot.addEventListener(
+  'touchcancel',
+  () => {
+    swipeStart = undefined;
+  },
+  { passive: true },
+);
 document.addEventListener('keydown', (event) => {
   if (
     event.key === 'Escape' &&

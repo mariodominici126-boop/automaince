@@ -51,7 +51,6 @@ La primera ejecución crea el esquema y carga los 19 activos del inventario PDF.
 | `MAIL_FROM`                                | Dirección visible opcional para los correos; si está vacía, usa `GMAIL_USER`.                                                                            |
 | `PURCHASE_EMAIL`                           | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                           |
 | `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD`       | Credenciales provisionales del módulo de demostración GTG.                                                                                               |
-| `NOW_YAIFRYN_PASSWORD`, `NOW_YAN_PASSWORD` | Contraseñas iniciales individuales (mínimo 12 caracteres) para los dos usuarios autorizados de NOW Logistics. Se guardan como hash scrypt en PostgreSQL. |
 
 ## Preparar una demo limpia de PrintPilot
 
@@ -109,7 +108,7 @@ El botón **Enviar por Gmail** de Contramedidas abre un borrador con el informe 
 
 El espacio de NOW Logistics utiliza una sola página para sus ocho unidades. El inventario inicial incluye F9, F5, F4, F12, F13, F14, F15 y el monta carga; marca y modelo quedan pendientes hasta recibir esos datos. Las fechas proporcionadas de último y próximo mantenimiento se precargan como registros iniciales; las unidades sin fechas generan una alerta para completar su historial.
 
-El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son sus cédulas; configura contraseñas iniciales individuales mediante `NOW_YAIFRYN_PASSWORD` y `NOW_YAN_PASSWORD` en `.env` local y en los secretos del servicio Render. Cada contraseña debe tener al menos 12 caracteres. Al reiniciar la aplicación por primera vez con esos valores, crea las cuentas como administradores; las contraseñas se almacenan con hash scrypt. No publiques las contraseñas ni las incluyas en GitHub.
+El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son `yaifryn.lopez.sanchez` y `yan.luis.la.hoz`; la contraseña inicial de cada uno es su propia cédula. En la primera inicialización, el sistema crea o actualiza ambas cuentas como administradores y guarda las contraseñas con hash scrypt en PostgreSQL. No es necesario configurar variables NOW en `.env`.
 
 El menú NOW contiene mantenimiento preventivo trimestral, combustible, asignaciones de unidades, reparaciones con costo y garantía, proveedores certificados, alertas, informes y bitácora. Las alertas muestran vencimientos y permiten reprogramarlos, creando el historial de solicitud. Las subcontrataciones requieren motivo (costo o ausencia de unidades) y un proveedor certificado activo. El proveedor inicial es SOLUCIONES AUTOMOTRICES SEGURA SRL, RNC 1-30-57318-2.
 

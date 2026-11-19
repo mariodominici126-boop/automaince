@@ -4,11 +4,13 @@ const path = require('node:path');
 const test = require('node:test');
 const auth = require('../backend/companies/now-logistics/auth');
 
-test('NOW Logistics solo admite los dos encargados autorizados por cédula', () => {
-  assert.equal(auth.allowedUsers.has('07105563211'), true);
-  assert.equal(auth.allowedUsers.has('40214552362'), true);
+test('NOW Logistics solo admite a los dos encargados con su nombre sin tildes', () => {
+  assert.equal(auth.allowedUsers.has('yaifrynlopezsanchez'), true);
+  assert.equal(auth.allowedUsers.has('yanluislahoz'), true);
   assert.equal(auth.allowedUsers.size, 2);
-  assert.equal(auth.allowedUsers.has('00000000000'), false);
+  assert.equal(auth.allowedUsers.has('usuarioajeno'), false);
+  assert.equal(auth.normalizeUsername('Yaifryn López Sánchez'), 'yaifrynlopezsanchez');
+  assert.equal(auth.normalizeUsername('Yan Luis La Hoz'), 'yanluislahoz');
 });
 
 test('la interfaz NOW presenta todas las unidades y no hereda el menú de maquinaria PrintPilot', () => {

@@ -804,6 +804,33 @@
   }
 }
 
+/* Touch-friendly controls and predictable vertical scrolling on phones. */
+@media (hover: none) and (pointer: coarse) {
+  .workspace button,
+  #accessPortal button,
+  .workspace select,
+  .workspace input,
+  .workspace textarea {
+    min-height: 44px;
+  }
+
+  .workspace #app button,
+  #accessPortal button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .workspace > main,
+  .workspace > aside,
+  #accessPortal {
+    overscroll-behavior-y: contain;
+  }
+
+  .workspace .table-card {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

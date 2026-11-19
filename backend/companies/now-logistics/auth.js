@@ -1,7 +1,18 @@
 const { scrypt, timingSafeEqual } = require('crypto');
 const repository = require('../../../database/adapters/postgresRepository');
 
-const allowedUsers = new Set(['07105563211', '40214552362']);
+const authorizedUsers = [
+  { username: 'yaifryn.lopez.sanchez', nationalId: '07105563211' },
+  { username: 'yan.luis.la.hoz', nationalId: '40214552362' },
+];
+const normalizeUsername = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+const usersByLogin = new Map(authorizedUsers.map((user) => [normalizeUsername(user.username), user]));
+const allowedUsers = new Set(usersByLogin.keys());
 
 function verifyPassword(password, encoded) {
   const [algorithm, salt, expectedHex] = String(encoded || '').split('$');
@@ -16,15 +27,16 @@ function verifyPassword(password, encoded) {
 }
 
 async function authenticate(input = {}) {
-  const username = String(input.username || '').trim();
-  if (!username || !input.password)
-    return { status: 400, body: { error: 'Escribe la cédula y la contraseña asignada.' } };
-  if (!allowedUsers.has(username))
+  const loginName = normalizeUsername(input.username);
+  if (!loginName || !input.password)
+    return { status: 400, body: { error: 'Escribe tu usuario y contraseña.' } };
+  const account = usersByLogin.get(loginName);
+  if (!account)
     return { status: 401, body: { error: 'Usuario o contraseña incorrectos.' } };
   const { rows } = await repository.query(
     `SELECT id,username,name,national_id,password_hash,role,active
-     FROM technicians WHERE company_id='now' AND national_id=$1 AND active=true LIMIT 1`,
-    [username],
+     FROM technicians WHERE company_id='now' AND (username=$1 OR national_id=$2) AND active=true LIMIT 1`,
+    [account.username, account.nationalId],
   );
   const user = rows[0];
   if (!user || !(await verifyPassword(input.password, user.password_hash)))
@@ -39,7 +51,7 @@ async function authenticate(input = {}) {
     body: {
       user: {
         id: user.id,
-        username: user.username,
+        username: account.username,
         displayName: user.name,
         initials,
         company: 'now',
@@ -51,4 +63,4 @@ async function authenticate(input = {}) {
   };
 }
 
-module.exports = { authenticate, verifyPassword, allowedUsers };
+module.exports = { authenticate, verifyPassword, allowedUsers, normalizeUsername };
