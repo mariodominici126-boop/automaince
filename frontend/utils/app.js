@@ -125,9 +125,34 @@ async function navigate(page) {
   }
 }
 window.navigate = navigate;
+const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+const mobileNavScrim = document.querySelector('.mobile-nav-scrim');
+function setMobileNavOpen(open) {
+  const workspace = document.querySelector('#workspace');
+  const wasOpen = workspace.classList.contains('menu-open');
+  workspace.classList.toggle('menu-open', open);
+  mobileNavToggle?.setAttribute('aria-expanded', String(open));
+  mobileNavToggle?.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+  if (open) document.querySelector('#nav button')?.focus({ preventScroll: true });
+  else if (wasOpen) mobileNavToggle?.focus({ preventScroll: true });
+}
+mobileNavToggle?.addEventListener('click', () =>
+  setMobileNavOpen(!document.querySelector('#workspace').classList.contains('menu-open')),
+);
+mobileNavScrim?.addEventListener('click', () => setMobileNavOpen(false));
 document.querySelector('#nav').addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (b) navigate(b.dataset.page);
+  if (b) {
+    navigate(b.dataset.page);
+    setMobileNavOpen(false);
+  }
+});
+document.addEventListener('keydown', (event) => {
+  if (
+    event.key === 'Escape' &&
+    document.querySelector('#workspace').classList.contains('menu-open')
+  )
+    setMobileNavOpen(false);
 });
 document.querySelector('.notification').addEventListener('click', () => navigate('alerts'));
 function openModal(content) {
