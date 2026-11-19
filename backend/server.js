@@ -193,14 +193,13 @@ async function detail(item, data, companyId) {
   return {
     ...item,
     maintenance: data.maintenance.filter((x) => x.vehicleId === item.id),
-    fuel: data.fuel.filter((x) => x.vehicleId === item.id),
     repairs: data.repairs.filter((x) => x.vehicleId === item.id),
     documents: data.documents.filter((x) => x.vehicleId === item.id),
     orders: (await orders.list(companyId)).filter((x) => x.vehicleId === item.id),
     risk: risk(item, data),
   };
 }
-function vehicle(input, data) {
+function vehicle(input, data, companyId) {
   if (!input.plate?.trim() || !input.brand?.trim() || !input.model?.trim())
     throw new Error('Placa, marca y modelo son obligatorios.');
   if (
@@ -218,9 +217,8 @@ function vehicle(input, data) {
     failures: 0,
     downtime: 0,
     monthlyCost: 0,
-    baseConsumption: 0,
-    recentConsumption: 0,
     ...input,
+    type: companyId === 'gtg' ? 'Camioneta' : input.type,
     plate: input.plate.trim(),
     year: Number(input.year),
   };
@@ -324,8 +322,6 @@ const server = http.createServer(async (req, res) => {
         if (url.pathname === '/api/maintenance')
           return json(res, 200, await repository.list('maintenance', companyId));
         if (url.pathname === '/api/orders') return json(res, 200, await orders.list(companyId));
-        if (url.pathname === '/api/fuel')
-          return json(res, 200, await repository.list('fuel', companyId));
         if (url.pathname === '/api/repairs')
           return json(res, 200, await repository.list('repairs', companyId));
         if (url.pathname === '/api/parts')
@@ -348,7 +344,7 @@ const server = http.createServer(async (req, res) => {
         const data = await companyData(companyId),
           item = await repository.create(
             'vehicles',
-            vehicle(await parseBody(req), data),
+            vehicle(await parseBody(req), data, companyId),
             companyId,
           );
         publishChange(companyId);
@@ -375,33 +371,6 @@ const server = http.createServer(async (req, res) => {
             ...input,
             cost: Number(input.cost),
             mileage: Number(input.mileage),
-          },
-          companyId,
-        );
-        publishChange(companyId);
-        return json(res, 201, item);
-      }
-      if (req.method === 'POST' && url.pathname === '/api/fuel') {
-        const input = await parseBody(req);
-        if (
-          !input.vehicleId ||
-          !input.date ||
-          Number(input.mileage) < 0 ||
-          Number(input.liters) <= 0 ||
-          Number(input.cost) < 0 ||
-          !input.provider?.trim()
-        )
-          throw new Error('Revise vehículo, fecha, kilometraje, litros, costo y proveedor.');
-        if (!(await repository.find('vehicles', input.vehicleId, companyId)))
-          throw new Error('El vehículo no pertenece a esta empresa.');
-        const item = await repository.create(
-          'fuel',
-          {
-            id: `F-${Date.now()}`,
-            ...input,
-            mileage: Number(input.mileage),
-            liters: Number(input.liters),
-            cost: Number(input.cost),
           },
           companyId,
         );

@@ -19,10 +19,9 @@ const api = async (url) => {
 };
 const titles = {
   dashboard: 'Panel de control',
-  vehicles: 'Vehículos',
+  vehicles: 'Camionetas',
   orders: 'Órdenes de mantenimiento',
   maintenance: 'Mantenimiento',
-  fuel: 'Combustible',
   repairs: 'Reparaciones',
   parts: 'Catálogo de piezas',
   documents: 'Documentos',
@@ -240,10 +239,6 @@ document.querySelector('#modal').addEventListener('click', (e) => {
   if (e.target.id === 'modal') closeModal();
 });
 async function genericPage(page) {
-  if (page === 'fuel') {
-    const records = await api('/api/fuel');
-    return `<div class="toolbar"><button class="btn" onclick="fuelForm()">+ Registrar carga</button></div><div class="card table-card"><table><thead><tr><th>FECHA</th><th>VEHÍCULO</th><th>KM</th><th>LITROS</th><th>COSTO</th><th>PROVEEDOR</th></tr></thead><tbody>${records.map((x) => `<tr><td>${x.date}</td><td>${x.vehicleId}</td><td>${x.mileage.toLocaleString()}</td><td>${x.liters} L</td><td>$${x.cost}</td><td>${x.provider}</td></tr>`).join('')}</tbody></table></div>`;
-  }
   if (page === 'repairs') {
     const rows = await api('/api/repairs');
     return simpleTable(
@@ -284,25 +279,6 @@ async function genericPage(page) {
 }
 function simpleTable(title, heads, rows) {
   return `<div class="card table-card"><h3 class="section-title">${title}</h3><table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((x) => `<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-}
-async function fuelForm() {
-  const vs = await api('/api/vehicles');
-  openModal(
-    `<h2>Registrar carga de combustible</h2><form class="form" onsubmit="saveFuel(event)"><label>Vehículo<select name="vehicleId">${vs.map((v) => `<option>${v.id}</option>`).join('')}</select></label><label>Fecha<input name="date" type="date" required></label><label>Kilometraje<input name="mileage" type="number" min="0" required></label><label>Litros<input name="liters" type="number" min="0.1" step=".1" required></label><label>Costo<input name="cost" type="number" min="0" step=".01" required></label><label>Proveedor<input name="provider" required></label><div class="modal-actions wide"><button type="button" class="btn secondary" onclick="closeModal()">Cancelar</button><button class="btn">Guardar</button></div></form>`,
-  );
-}
-async function saveFuel(e) {
-  e.preventDefault();
-  const x = Object.fromEntries(new FormData(e.target));
-  ['mileage', 'liters', 'cost'].forEach((k) => (x[k] = Number(x[k])));
-  const r = await fetch('/api/fuel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(x),
-  });
-  if (!r.ok) return formError(await r.json());
-  closeModal();
-  navigate('fuel');
 }
 async function exportCsv(source) {
   const rows = source === 'analytics' ? await api('/api/vehicles') : [];

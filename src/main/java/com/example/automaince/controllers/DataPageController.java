@@ -23,19 +23,19 @@ public class DataPageController {
         this.page = page;
         endpoint = page;
         pageTitle.setText(switch (page) {
-            case "vehicles" -> "Vehículos"; case "orders" -> "Órdenes de mantenimiento";
-            case "maintenance" -> "Historial de mantenimiento"; case "fuel" -> "Combustible";
+            case "vehicles" -> "Camionetas"; case "orders" -> "Órdenes de mantenimiento";
+            case "maintenance" -> "Historial de mantenimiento";
             case "repairs" -> "Reparaciones"; case "parts" -> "Catálogo de piezas";
             case "documents" -> "Documentos"; case "alerts" -> "Centro de alertas";
             case "analytics" -> "Analytics"; case "intelligence" -> "AutoMaince Intelligence";
             default -> page;
         });
         pageDescription.setText("Información compartida con la aplicación web a través del servidor AutoMaince.");
-        if (page.equals("vehicles")) pageDescription.setText("Consulta y registra vehículos de la flota.");
+        if (page.equals("vehicles")) pageDescription.setText("Consulta y registra las camionetas de la flota GTG.");
         if (page.equals("orders")) pageDescription.setText("Crea órdenes y avanza su estado en el flujo de mantenimiento.");
         if (actions != null) actions.getChildren().clear();
-        if (Set.of("vehicles", "orders", "maintenance", "fuel").contains(page)) {
-            Button add = new Button(switch (page) { case "vehicles" -> "+ Agregar vehículo"; case "orders" -> "+ Crear orden"; case "maintenance" -> "+ Registrar mantenimiento"; default -> "+ Registrar carga"; });
+        if (Set.of("vehicles", "orders", "maintenance").contains(page)) {
+            Button add = new Button(switch (page) { case "vehicles" -> "+ Agregar camioneta"; case "orders" -> "+ Crear orden"; case "maintenance" -> "+ Registrar mantenimiento"; default -> throw new IllegalStateException("Página no compatible: " + page); });
             add.setStyle("-fx-background-color: #087f79; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 9 15;");
             add.setOnAction(e -> createRecord()); actions.getChildren().add(add);
         }
@@ -92,15 +92,15 @@ public class DataPageController {
         table.setItems(FXCollections.observableArrayList(rows));
     }
 
-    private String label(String key) { return switch(key) { case "vehicleId" -> "Vehículo"; case "createdAt" -> "Creada"; case "nextMaintenance" -> "Próximo mantenimiento"; case "recentConsumption" -> "Consumo reciente"; default -> Character.toUpperCase(key.charAt(0)) + key.substring(1); }; }
+    private String label(String key) { return switch(key) { case "vehicleId" -> "Camioneta"; case "createdAt" -> "Creada"; case "nextMaintenance" -> "Próximo mantenimiento"; default -> Character.toUpperCase(key.charAt(0)) + key.substring(1); }; }
 
     private void createRecord() {
         try {
-            String formName = switch (page) { case "vehicles" -> "VehicleForm.fxml"; case "orders" -> "OrderForm.fxml"; case "maintenance" -> "MaintenanceForm.fxml"; default -> "FuelForm.fxml"; };
+            String formName = switch (page) { case "vehicles" -> "VehicleForm.fxml"; case "orders" -> "OrderForm.fxml"; case "maintenance" -> "MaintenanceForm.fxml"; default -> throw new IllegalStateException("Página no compatible: " + page); };
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/automaince/Vistas/Forms/" + formName));
             Parent form = loader.load();
             Dialog<Map<String,Object>> dialog = new Dialog<>();
-            dialog.setTitle(switch(page) { case "vehicles" -> "Agregar vehículo"; case "orders" -> "Crear orden de mantenimiento"; case "maintenance" -> "Registrar mantenimiento"; default -> "Registrar carga de combustible"; });
+            dialog.setTitle(switch(page) { case "vehicles" -> "Agregar camioneta"; case "orders" -> "Crear orden de mantenimiento"; case "maintenance" -> "Registrar mantenimiento"; default -> throw new IllegalStateException("Página no compatible: " + page); });
             dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
             dialog.getDialogPane().setContent(form);
             dialog.setResultConverter(button -> {
@@ -109,7 +109,7 @@ public class DataPageController {
                     case "vehicles" -> ((VehicleFormController) loader.getController()).data();
                     case "orders" -> ((OrderFormController) loader.getController()).data();
                     case "maintenance" -> ((MaintenanceFormController) loader.getController()).data();
-                    default -> ((FuelFormController) loader.getController()).data();
+                    default -> throw new IllegalStateException("Página no compatible: " + page);
                 };
             });
             Optional<Map<String,Object>> data = dialog.showAndWait();

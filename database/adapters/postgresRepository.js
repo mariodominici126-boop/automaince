@@ -117,6 +117,34 @@ async function seedNowLogistics() {
   }
 }
 
+async function migrateGtgPickupVehicles() {
+  const migrationId = 'gtg-pickup-vehicles-v1';
+  const applied = await pool.query('SELECT 1 FROM schema_migrations WHERE id=$1', [migrationId]);
+  if (applied.rowCount) return;
+  const seed = require('../../data/mock/fleetData');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const vehicle of seed.vehicles) {
+      await client.query(
+        `UPDATE app_records
+         SET payload=(payload - 'baseConsumption' - 'recentConsumption') ||
+             jsonb_build_object('brand',$1,'model',$2,'type','Camioneta'),
+             updated_at=now()
+         WHERE company_id='gtg' AND collection='vehicles' AND record_id=$3`,
+        [vehicle.brand, vehicle.model, String(vehicle.id)],
+      );
+    }
+    await client.query('INSERT INTO schema_migrations(id) VALUES($1) ON CONFLICT DO NOTHING', [migrationId]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function initialize(options = {}) {
   if (initialized) return;
   await pool.query(fs.readFileSync(path.join(root, 'database/postgres/schema.sql'), 'utf8'));
@@ -145,6 +173,7 @@ async function initialize(options = {}) {
       throw error;
     } finally { client.release(); }
   }
+  if (!options.deferGtgSeed) await migrateGtgPickupVehicles();
   await seedPrintPilot();
   await seedNowLogistics();
   initialized = true;

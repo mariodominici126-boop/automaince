@@ -52,6 +52,10 @@ La primera ejecución crea el esquema y carga los 19 activos del inventario PDF.
 | `PURCHASE_EMAIL`                           | Destinatario del aviso de compras; PrintPilot usa `printpilot@notions.com.do`.                                                                           |
 | `GTG_DEMO_USER`, `GTG_DEMO_PASSWORD`       | Credenciales provisionales del módulo de demostración GTG.                                                                                               |
 
+## GTG · flota de camionetas
+
+El módulo de GTG se limita a camionetas. Los vehículos de ejemplo son camionetas, el formulario asigna ese tipo automáticamente y el menú no incluye combustible. Al iniciar, la migración `gtg-pickup-vehicles-v1` actualiza marca, modelo y tipo de los seis vehículos de demostración existentes sin tocar sus historiales de mantenimiento.
+
 ## Preparar una demo limpia de PrintPilot
 
 El reinicio elimina **todos los datos de la base local `automaince`** y vuelve a crear el esquema, los activos iniciales, los planes de filtros y la cuenta provisional. No lo ejecutes si necesitas conservar registros. Está bloqueado para producción y para bases que no sean `automaince` en localhost. Detén primero `npm start` y ejecuta en CMD o PowerShell:
@@ -110,7 +114,7 @@ El espacio de NOW Logistics utiliza una sola página para sus ocho unidades. El 
 
 El acceso se limita a Yaifryn López Sánchez y Yan Luis La Hoz. Sus usuarios son `yaifrynlo` y `yanhoz`; la contraseña inicial de cada uno es su propia cédula. En la primera inicialización, el sistema crea o actualiza ambas cuentas como administradores y guarda las contraseñas con hash scrypt en PostgreSQL. No es necesario configurar variables NOW en `.env`.
 
-El menú NOW contiene mantenimiento preventivo trimestral, combustible, asignaciones de unidades, reparaciones con costo y garantía, proveedores certificados, alertas, informes y bitácora. Las alertas muestran vencimientos y permiten reprogramarlos, creando el historial de solicitud. Las subcontrataciones requieren motivo (costo o ausencia de unidades) y un proveedor certificado activo. El proveedor inicial es SOLUCIONES AUTOMOTRICES SEGURA SRL, RNC 1-30-57318-2.
+El menú NOW contiene mantenimiento preventivo trimestral, dispensado de combustible, asignaciones de unidades, reparaciones con costo y garantía, proveedores certificados, alertas, informes y bitácora. Las alertas muestran vencimientos y permiten reprogramarlos, creando el historial de solicitud. Las subcontrataciones requieren motivo (costo o ausencia de unidades) y un proveedor certificado activo. El proveedor inicial es SOLUCIONES AUTOMOTRICES SEGURA SRL, RNC 1-30-57318-2.
 
 Las pruebas PostgreSQL de NOW se ejecutan junto con las de Fase 0 y 1 mediante `npm run test:integration`. Utiliza únicamente la base local aislada `automaince_test`.
 
