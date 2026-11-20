@@ -831,6 +831,70 @@
   }
 }
 
+/* Keep the workspace inside the viewport on narrow phones and tablets. */
+@media (max-width: 900px) {
+  .workspace {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .workspace > main {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    touch-action: pan-y;
+  }
+
+  .workspace #app > *,
+  .workspace #app .grid,
+  .workspace #app .grid > *,
+  .workspace #app .split > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace #app .table-card {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .workspace > aside {
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 600px) {
+  .workspace > main {
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+
+  .workspace > main > header {
+    gap: 9px;
+  }
+
+  .workspace > main > header .header-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .workspace > main > header .notification {
+    padding: 7px;
+  }
+
+  .workspace #app .page-actions,
+  .workspace #app .card-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .workspace #app .toolbar > * {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

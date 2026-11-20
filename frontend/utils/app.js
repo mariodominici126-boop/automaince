@@ -176,14 +176,26 @@ workspaceRoot.addEventListener(
     const target = event.target;
     if (
       target.closest(
-        'input, textarea, select, button, a, [contenteditable="true"], #modal:not(.hidden)',
+        'input, textarea, select, [contenteditable="true"], #modal:not(.hidden)',
       )
     )
       return;
+    const menuOpen = workspaceRoot.classList.contains('menu-open');
+    const startX = event.touches[0].clientX;
+    // Reserve horizontal tables for their own scrolling. Elsewhere the left-edge
+    // gesture behaves like the native back gesture on a phone.
+    const horizontalScroller = target.closest('.table-card, [data-horizontal-scroll]');
+    if (
+      !menuOpen &&
+      horizontalScroller &&
+      horizontalScroller.scrollWidth > horizontalScroller.clientWidth
+    )
+      return;
+    if (!menuOpen && startX > 48) return;
     swipeStart = {
-      x: event.touches[0].clientX,
+      x: startX,
       y: event.touches[0].clientY,
-      menuOpen: workspaceRoot.classList.contains('menu-open'),
+      menuOpen,
     };
   },
   { passive: true },
@@ -197,12 +209,12 @@ workspaceRoot.addEventListener(
     const deltaY = end.clientY - swipeStart.y;
     const start = swipeStart;
     swipeStart = undefined;
-    if (Math.abs(deltaX) < 90 || Math.abs(deltaX) < Math.abs(deltaY) * 1.35) return;
-    if (start.menuOpen && deltaX < 0 && start.x < 320) {
+    if (Math.abs(deltaX) < 64 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    if (start.menuOpen && deltaX < 0 && start.x < 340) {
       setMobileNavOpen(false);
       return;
     }
-    if (!start.menuOpen && deltaX > 0 && start.x <= 22 && workspaceHistoryIndex > 0)
+    if (!start.menuOpen && deltaX > 0 && workspaceHistoryIndex > 0)
       window.history.back();
   },
   { passive: true },
