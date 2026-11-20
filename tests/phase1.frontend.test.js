@@ -14,6 +14,7 @@ function helpers(ppApi) {
     json: (_method, body) => body,
     empty: (message) => `<p>${message}</p>`,
     badge: (status) => `<span>${status}</span>`,
+    formatDate: (value) => String(value ?? '—'),
   };
 }
 

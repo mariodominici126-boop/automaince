@@ -19,16 +19,16 @@ const api = async (url) => {
 };
 const titles = {
   dashboard: 'Panel de control',
-  vehicles: 'Vehículos',
+  vehicles: 'Camionetas',
   orders: 'Órdenes de mantenimiento',
   maintenance: 'Mantenimiento',
-  fuel: 'Combustible',
   repairs: 'Reparaciones',
   parts: 'Catálogo de piezas',
   documents: 'Documentos',
   alerts: 'Centro de alertas',
   analytics: 'Analytics',
   intelligence: 'AutoMaince Intelligence',
+  'printpilot-assets': 'Activos registrados',
   'printpilot-agenda': 'Semana y mes',
   'printpilot-filters': 'Filtros',
   'printpilot-air': 'Aires',
@@ -43,9 +43,45 @@ const titles = {
   'printpilot-reports': 'Informes',
   'printpilot-audit': 'Bitácora',
   'printpilot-technicians': 'Técnicos',
+  'now-dashboard': 'Panel de control',
+  'now-vehicles': 'Vehículos',
+  'now-maintenance': 'Mantenimientos',
+  'now-fuel': 'Combustible',
+  'now-assignments': 'Asignaciones',
+  'now-repairs': 'Reparaciones',
+  'now-providers': 'Proveedores',
+  'now-alerts': 'Alertas',
+  'now-reports': 'Informes',
+  'now-audit': 'Bitácora',
 };
 let activePage = 'dashboard';
+let workspaceHistoryIndex = 0;
 let updates;
+const pageSlugs = {
+  dashboard: 'panel',
+  'printpilot-assets': 'activos',
+  'printpilot-agenda': 'semana-mes',
+  'printpilot-filters': 'filtros',
+  'printpilot-air': 'aires',
+  'printpilot-printers': 'impresoras',
+  'printpilot-oven': 'hornos',
+  'printpilot-infrastructure': 'infraestructura',
+  'printpilot-cutter': 'cortadoras',
+  'printpilot-maintenance': 'mantenimientos',
+  'printpilot-countermeasures': 'contramedidas',
+  'printpilot-supplies': 'insumos',
+  'printpilot-documents': 'documentos',
+  'printpilot-reports': 'informes',
+  'printpilot-audit': 'bitacora',
+  'printpilot-technicians': 'tecnicos',
+};
+const pageFromHash = (hash) =>
+  Object.keys(pageSlugs).find((page) => pageSlugs[page] === String(hash || '').replace(/^#/, ''));
+window.pageFromHash = pageFromHash;
+const pageUrl = (page) =>
+  document.querySelector('#workspace')?.classList.contains('company-printpilot') && pageSlugs[page]
+    ? `#${pageSlugs[page]}`
+    : location.pathname;
 window.connectDataEvents = () => {
   window.closeDataEvents();
   const token = sessionStorage.getItem('automaince.token');
@@ -94,7 +130,20 @@ window.loadWorkspaceData = () =>
       document.querySelector('#headerAlertCount').textContent = a.length;
     })
     .catch(() => {});
-async function navigate(page) {
+window.resetWorkspaceHistory = function (page) {
+  activePage = page;
+  workspaceHistoryIndex = 0;
+  window.history.replaceState({ autoMaincePage: page, autoMainceIndex: 0 }, '', pageUrl(page));
+};
+async function navigate(page, options = {}) {
+  if (options.history !== false && page !== activePage) {
+    workspaceHistoryIndex += 1;
+    window.history.pushState(
+      { autoMaincePage: page, autoMainceIndex: workspaceHistoryIndex },
+      '',
+      pageUrl(page),
+    );
+  }
   activePage = page;
   document
     .querySelectorAll('#nav button')
@@ -115,17 +164,133 @@ async function navigate(page) {
   }
 }
 window.navigate = navigate;
+window.addEventListener('popstate', (event) => {
+  const state = event.state;
+  const page = state?.autoMaincePage || pageFromHash(location.hash);
+  if (!page) return;
+  workspaceHistoryIndex = Number(state?.autoMainceIndex) || 0;
+  navigate(page, { history: false });
+});
+const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+const mobileNavScrim = document.querySelector('.mobile-nav-scrim');
+function setMobileNavOpen(open) {
+  const workspace = document.querySelector('#workspace');
+  const wasOpen = workspace.classList.contains('menu-open');
+  workspace.classList.toggle('menu-open', open);
+  mobileNavToggle?.setAttribute('aria-expanded', String(open));
+  mobileNavToggle?.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+  if (open) document.querySelector('#nav button')?.focus({ preventScroll: true });
+  else if (wasOpen) mobileNavToggle?.focus({ preventScroll: true });
+}
+mobileNavToggle?.addEventListener('click', () =>
+  setMobileNavOpen(!document.querySelector('#workspace').classList.contains('menu-open')),
+);
+mobileNavScrim?.addEventListener('click', () => setMobileNavOpen(false));
 document.querySelector('#nav').addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (b) navigate(b.dataset.page);
+  if (b) {
+    navigate(b.dataset.page);
+    setMobileNavOpen(false);
+  }
+});
+let swipeStart;
+const workspaceRoot = document.querySelector('#workspace');
+workspaceRoot.addEventListener(
+  'touchstart',
+  (event) => {
+    if (event.touches.length !== 1) return;
+    const target = event.target;
+    if (target.closest('input, textarea, select, [contenteditable="true"], #modal:not(.hidden)'))
+      return;
+    const menuOpen = workspaceRoot.classList.contains('menu-open');
+    const startX = event.touches[0].clientX;
+    // Reserve horizontal tables for their own scrolling. Elsewhere the left-edge
+    // gesture behaves like the native back gesture on a phone.
+    const horizontalScroller = target.closest('.table-card, [data-horizontal-scroll]');
+    if (
+      !menuOpen &&
+      horizontalScroller &&
+      horizontalScroller.scrollWidth > horizontalScroller.clientWidth
+    )
+      return;
+    if (!menuOpen && startX > 48) return;
+    swipeStart = {
+      x: startX,
+      y: event.touches[0].clientY,
+      menuOpen,
+    };
+  },
+  { passive: true },
+);
+workspaceRoot.addEventListener(
+  'touchend',
+  (event) => {
+    if (!swipeStart || event.changedTouches.length !== 1) return;
+    const end = event.changedTouches[0];
+    const deltaX = end.clientX - swipeStart.x;
+    const deltaY = end.clientY - swipeStart.y;
+    const start = swipeStart;
+    swipeStart = undefined;
+    if (Math.abs(deltaX) < 64 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    if (start.menuOpen && deltaX < 0 && start.x < 340) {
+      setMobileNavOpen(false);
+      return;
+    }
+    if (!start.menuOpen && deltaX > 0 && workspaceHistoryIndex > 0) window.history.back();
+  },
+  { passive: true },
+);
+workspaceRoot.addEventListener(
+  'touchcancel',
+  () => {
+    swipeStart = undefined;
+  },
+  { passive: true },
+);
+document.addEventListener('keydown', (event) => {
+  if (
+    event.key === 'Escape' &&
+    document.querySelector('#workspace').classList.contains('menu-open')
+  )
+    setMobileNavOpen(false);
 });
 document.querySelector('.notification').addEventListener('click', () => navigate('alerts'));
 function openModal(content) {
-  document.querySelector('#modal').innerHTML = `<div class="modal-box">${content}</div>`;
-  document.querySelector('#modal').classList.remove('hidden');
+  const modal = document.querySelector('#modal');
+  modal.innerHTML = `<div class="modal-box">${content}</div>`;
+  modal.classList.remove('hidden');
+  const form = modal.querySelector('form');
+  if (form) {
+    form.dataset.initialState = [...form.elements]
+      .map(
+        (el) =>
+          `${el.name}:${el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value}`,
+      )
+      .join('|');
+    window.requestAnimationFrame(() =>
+      form
+        .querySelector('input:not([type="hidden"]),select,textarea')
+        ?.focus({ preventScroll: true }),
+    );
+  }
 }
-function closeModal() {
-  document.querySelector('#modal').classList.add('hidden');
+function closeModal(force = false) {
+  const modal = document.querySelector('#modal'),
+    form = modal.querySelector('form');
+  if (!force && form && form.dataset.submitting !== 'true') {
+    const current = [...form.elements]
+      .map(
+        (el) =>
+          `${el.name}:${el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value}`,
+      )
+      .join('|');
+    if (
+      form.dataset.initialState !== current &&
+      !window.confirm('Hay cambios sin guardar. ¿Deseas descartarlos?')
+    )
+      return;
+  }
+  modal.classList.add('hidden');
 }
 function formError(data) {
   const toast = document.querySelector('#toast');
@@ -133,14 +298,22 @@ function formError(data) {
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 4000);
 }
-document.querySelector('#modal').addEventListener('click', (e) => {
-  if (e.target.id === 'modal') closeModal();
+const modalRoot = document.querySelector('#modal');
+let backdropPointerDown = false;
+modalRoot.addEventListener('pointerdown', (e) => {
+  backdropPointerDown = e.target === modalRoot;
+});
+modalRoot.addEventListener('click', (e) => {
+  if (e.target === modalRoot && backdropPointerDown) closeModal();
+  backdropPointerDown = false;
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !modalRoot.classList.contains('hidden')) {
+    event.preventDefault();
+    closeModal();
+  }
 });
 async function genericPage(page) {
-  if (page === 'fuel') {
-    const records = await api('/api/fuel');
-    return `<div class="toolbar"><button class="btn" onclick="fuelForm()">+ Registrar carga</button></div><div class="card table-card"><table><thead><tr><th>FECHA</th><th>VEHÍCULO</th><th>KM</th><th>LITROS</th><th>COSTO</th><th>PROVEEDOR</th></tr></thead><tbody>${records.map((x) => `<tr><td>${x.date}</td><td>${x.vehicleId}</td><td>${x.mileage.toLocaleString()}</td><td>${x.liters} L</td><td>$${x.cost}</td><td>${x.provider}</td></tr>`).join('')}</tbody></table></div>`;
-  }
   if (page === 'repairs') {
     const rows = await api('/api/repairs');
     return simpleTable(
@@ -182,25 +355,6 @@ async function genericPage(page) {
 function simpleTable(title, heads, rows) {
   return `<div class="card table-card"><h3 class="section-title">${title}</h3><table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((x) => `<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-async function fuelForm() {
-  const vs = await api('/api/vehicles');
-  openModal(
-    `<h2>Registrar carga de combustible</h2><form class="form" onsubmit="saveFuel(event)"><label>Vehículo<select name="vehicleId">${vs.map((v) => `<option>${v.id}</option>`).join('')}</select></label><label>Fecha<input name="date" type="date" required></label><label>Kilometraje<input name="mileage" type="number" min="0" required></label><label>Litros<input name="liters" type="number" min="0.1" step=".1" required></label><label>Costo<input name="cost" type="number" min="0" step=".01" required></label><label>Proveedor<input name="provider" required></label><div class="modal-actions wide"><button type="button" class="btn secondary" onclick="closeModal()">Cancelar</button><button class="btn">Guardar</button></div></form>`,
-  );
-}
-async function saveFuel(e) {
-  e.preventDefault();
-  const x = Object.fromEntries(new FormData(e.target));
-  ['mileage', 'liters', 'cost'].forEach((k) => (x[k] = Number(x[k])));
-  const r = await fetch('/api/fuel', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(x),
-  });
-  if (!r.ok) return formError(await r.json());
-  closeModal();
-  navigate('fuel');
-}
 async function exportCsv(source) {
   const rows = source === 'analytics' ? await api('/api/vehicles') : [];
   const csv = [
@@ -226,6 +380,7 @@ document.querySelector('.user').addEventListener('click', async () => {
     window.closeDataEvents();
     document.getElementById('workspace').classList.add('hidden');
     document.getElementById('workspace').classList.remove('company-gtg');
+    document.getElementById('workspace').classList.remove('company-now', 'company-printpilot');
     window.showAccessPanel();
   }
 });

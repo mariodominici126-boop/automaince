@@ -48,14 +48,33 @@ async function getSession(req) {
     ]);
     return null;
   }
-  return {
-    companyId: rows[0].company_id,
-    user:
-      typeof rows[0].user_payload === 'string'
-        ? JSON.parse(rows[0].user_payload)
-        : rows[0].user_payload,
-    expiresAt: rows[0].expires_at,
-  };
+  let user =
+    typeof rows[0].user_payload === 'string'
+      ? JSON.parse(rows[0].user_payload)
+      : rows[0].user_payload;
+  if (rows[0].company_id === 'printpilot' && user?.id) {
+    const technician = await repository.query(
+      'SELECT id,username,name,company_name,role,active FROM technicians WHERE company_id=$1 AND id=$2',
+      ['printpilot', user.id],
+    );
+    if (!technician.rowCount || !technician.rows[0].active) {
+      await repository.query('DELETE FROM user_sessions WHERE token_hash=$1', [tokenHash(token)]);
+      return null;
+    }
+    const current = technician.rows[0];
+    user = {
+      ...user,
+      role: current.role,
+      username: current.username,
+      displayName: current.name,
+      company: current.company_name,
+    };
+    await repository.query('UPDATE user_sessions SET user_payload=$1::jsonb WHERE token_hash=$2', [
+      JSON.stringify(user),
+      tokenHash(token),
+    ]);
+  }
+  return { companyId: rows[0].company_id, user, expiresAt: rows[0].expires_at };
 }
 function loginRateLimit(req, company, username) {
   const ip =

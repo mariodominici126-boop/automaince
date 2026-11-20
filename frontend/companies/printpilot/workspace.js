@@ -56,7 +56,9 @@
       userButton.textContent = user.initials || 'EM';
       userButton.title = `${user.displayName || 'Emmanuel'} · Cerrar sesión`;
       window.connectDataEvents?.();
-      window.navigate('dashboard');
+      const hashPage = window.pageFromHash?.(location.hash) || 'dashboard';
+      window.resetWorkspaceHistory?.(hashPage);
+      window.navigate(hashPage, { history: false });
       return;
     }
     nav.innerHTML = baseNav;

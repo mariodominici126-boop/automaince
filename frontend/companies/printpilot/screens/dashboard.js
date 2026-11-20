@@ -1,5 +1,5 @@
 (() => {
-  const { h, money, ppApi, json, empty, badge } = window.printpilotHelpers;
+  const { h, money, ppApi, json, empty, badge, formatDate } = window.printpilotHelpers;
   window.printpilotPages.dashboard = async () => {
     const d = await ppApi('/api/printpilot/dashboard'),
       counts = d.counts || {},
@@ -14,7 +14,7 @@
           .slice(0, 8)
           .map(
             (o) =>
-              `<li><time>${h(o.plannedAt || 'Sin fecha')}</time><div><b>${h(o.asset_name || o.asset_code)}</b><small>${h(o.description)}</small></div>${badge(o.status)}</li>`,
+              `<li><time>${h(formatDate(o.plannedAt))}</time><div><b>${h(o.asset_name || o.asset_code)}</b><small>${h(o.description)}</small></div>${badge(o.status)}</li>`,
           )
           .join('')}</ul>`
       : empty('No hay mantenimientos programados en este período.');

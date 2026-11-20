@@ -43,6 +43,18 @@ const validateAssetCode = (value) => {
     );
   return code;
 };
+const ASSET_CRITICALITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'];
+const ASSET_STATUSES = ['OPERATIVO', 'MANTENIMIENTO', 'FUERA DE SERVICIO'];
+function validDate(value, label) {
+  if (!value) return null;
+  const date = String(value).slice(0, 10);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) !== date
+  )
+    throw new Error(`${label} no es válida.`);
+  return date;
+}
 async function transaction(work) {
   const client = await db.pool.connect();
   try {
@@ -98,6 +110,10 @@ async function addAsset(input, user) {
     throw new Error('Código, nombre y categoría válida son obligatorios.');
   const code = validateAssetCode(input.code),
     id = `PP-${code}`;
+  if (!ASSET_CRITICALITIES.includes(input.criticality || 'MEDIA'))
+    throw new Error('Criticidad no válida.');
+  if (!ASSET_STATUSES.includes(input.operationalStatus || 'OPERATIVO'))
+    throw new Error('Estado operativo no válido.');
   return transaction(async (client) => {
     const { rows } = await client.query(
       `INSERT INTO assets(id,company_id,code,category,name,description,manufacturer,model,serial_number,acquired_on,location,department,responsible,criticality,operational_status,technical_data)
@@ -112,7 +128,7 @@ async function addAsset(input, user) {
         input.manufacturer || '',
         input.model || '',
         input.serialNumber || '',
-        input.acquiredOn || null,
+        validDate(input.acquiredOn, 'La fecha de adquisición'),
         input.location || '',
         input.department || '',
         input.responsible || '',
@@ -127,6 +143,12 @@ async function addAsset(input, user) {
 }
 async function updateAsset(id, input, user) {
   validateEntityId(id);
+  if (input.criticality !== undefined && !ASSET_CRITICALITIES.includes(input.criticality))
+    throw new Error('Criticidad no válida.');
+  if (input.operationalStatus !== undefined && !ASSET_STATUSES.includes(input.operationalStatus))
+    throw new Error('Estado operativo no válido.');
+  if (input.acquiredOn !== undefined)
+    input = { ...input, acquiredOn: validDate(input.acquiredOn, 'La fecha de adquisición') };
   const allowed = [
     'description',
     'manufacturer',
@@ -305,6 +327,11 @@ async function updateTechnician(id, input, user) {
   validateEntityId(id);
   if (!input.name?.trim() || !input.nationalId?.trim() || !input.companyName?.trim())
     throw new Error('Nombre, cédula y empresa son obligatorios.');
+  if (input.role !== undefined && !['ADMINISTRADOR', 'TECNICO'].includes(input.role))
+    throw new Error('Rol no válido.');
+  if (input.active !== undefined && typeof input.active !== 'boolean')
+    throw new Error('El estado activo debe ser verdadero o falso.');
+  const passwordHash = input.temporaryPassword ? await hashPassword(input.temporaryPassword) : null;
   return transaction(async (client) => {
     const before = await client.query(
       'SELECT id,username,name,national_id,company_name,role,active FROM technicians WHERE company_id=$1 AND id=$2 FOR UPDATE',
@@ -312,9 +339,23 @@ async function updateTechnician(id, input, user) {
     );
     if (!before.rowCount) return null;
     const { rows } = await client.query(
-      `UPDATE technicians SET name=$1,national_id=$2,company_name=$3 WHERE company_id=$4 AND id=$5 RETURNING id,username,name,national_id,company_name,role,active`,
-      [input.name.trim(), input.nationalId.trim(), input.companyName.trim(), COMPANY, id],
+      `UPDATE technicians SET name=$1,national_id=$2,company_name=$3,role=COALESCE($4,role),active=COALESCE($5,active),password_hash=COALESCE($6,password_hash) WHERE company_id=$7 AND id=$8 RETURNING id,username,name,national_id,company_name,role,active`,
+      [
+        input.name.trim(),
+        input.nationalId.trim(),
+        input.companyName.trim(),
+        input.role ?? null,
+        input.active ?? null,
+        passwordHash,
+        COMPANY,
+        id,
+      ],
     );
+    if (input.role !== undefined || input.active === false || passwordHash)
+      await client.query(
+        "DELETE FROM user_sessions WHERE company_id=$1 AND user_payload->>'id'=$2",
+        [COMPANY, id],
+      );
     await audit(client, user, 'ACTUALIZAR', 'TECNICO', id, before.rows[0], rows[0]);
     return rows[0];
   });
@@ -353,6 +394,13 @@ async function createPlan(input, user) {
     throw new Error('Defina una frecuencia por días, meses o unidad de uso.');
   if (intervalMonths && intervalDays)
     throw new Error('Elija una frecuencia de calendario: días o meses.');
+  const nextDueAt = validDate(input.nextDueAt, 'La próxima fecha');
+  if ((intervalMonths || intervalDays) && !nextDueAt)
+    throw new Error('Indique la próxima fecha para un plan de calendario.');
+  if (nextDueAt && nextDueAt < todayInSantoDomingo())
+    throw new Error(
+      'La próxima fecha es anterior a hoy; elija una fecha futura para evitar generar órdenes atrasadas en masa.',
+    );
   if (usageInterval && !['HORAS', 'CICLOS', 'IMPRESIONES'].includes(input.usageUnit))
     throw new Error('Elija la unidad de uso del plan.');
   if (
@@ -379,7 +427,7 @@ async function createPlan(input, user) {
         intervalDays,
         usageInterval,
         input.usageUnit || null,
-        input.nextDueAt || null,
+        nextDueAt,
         JSON.stringify(input.tasks),
         actorId(user),
         input.technicianId || null,
@@ -424,6 +472,8 @@ async function generateScheduledOrders() {
     for (const plan of plans.rows) {
       let due = dateString(plan.next_due_at);
       if (due > horizon) continue;
+      // Recover overdue legacy plans from today instead of backfilling years of missed occurrences.
+      if (due < today) due = today;
       const { rows: assetRows } = await client.query('SELECT name FROM assets WHERE id=$1', [
         plan.asset_id,
       ]);
@@ -707,10 +757,18 @@ async function createCountermeasure(input, user) {
   )
     throw new Error('El técnico no pertenece a PrintPilot.');
   const id = `PP-CM-${randomUUID()}`;
+  const plannedAt = validDate(input.plannedAt, 'La fecha planificada');
+  const laborCost = Number(input.laborCost || 0);
+  if (
+    ![laborCost, Number(input.laborHours || 0)].every(
+      (value) => Number.isFinite(value) && value >= 0,
+    )
+  )
+    throw new Error('Horas y costos deben ser números iguales o mayores que cero.');
   return transaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO countermeasures(id,company_id,asset_id,title,status,priority,issue,root_cause,action_taken,electronic_changes,parts,checklist,technician_id,provider,planned_at,labor_hours,labor_cost,parts_cost,total_cost,notes)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+      `INSERT INTO countermeasures(id,company_id,asset_id,title,status,priority,issue,root_cause,action_taken,electronic_changes,parts,checklist,technician_id,provider,planned_at,started_at,completed_at,labor_hours,labor_cost,parts_cost,total_cost,notes)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15,CASE WHEN $5='EN PROCESO' THEN now() END,CASE WHEN $5 IN ('COMPLETADA','CERRADA') THEN now() END,$16,$17,$18,$19,$20) RETURNING *`,
       [
         id,
         COMPANY,
@@ -722,20 +780,31 @@ async function createCountermeasure(input, user) {
         input.rootCause || '',
         input.actionTaken || '',
         input.electronicChanges || '',
-        JSON.stringify(input.parts || []),
+        JSON.stringify([]),
         JSON.stringify(input.checklist || []),
-        input.technicianId || actorId(user),
+        input.technicianId || null,
         input.provider || '',
-        input.plannedAt || null,
+        plannedAt,
         Number(input.laborHours || 0),
-        Number(input.laborCost || 0),
-        Number(input.partsCost || 0),
-        Number(input.totalCost || 0),
+        laborCost,
+        0,
+        laborCost,
         input.notes || '',
       ],
     );
-    await audit(client, user, 'CREAR', 'CONTRAMEDIDA', id, null, rows[0]);
-    return rows[0];
+    const { parts, cost: inventoryPartsCost } = await replaceCountermeasureParts(
+      client,
+      id,
+      input.parts || [],
+      [],
+      user,
+    );
+    const saved = await client.query(
+      'UPDATE countermeasures SET parts=$1::jsonb,parts_cost=$2,total_cost=$3 WHERE id=$4 RETURNING *',
+      [JSON.stringify(parts), inventoryPartsCost, laborCost + inventoryPartsCost, id],
+    );
+    await audit(client, user, 'CREAR', 'CONTRAMEDIDA', id, null, saved.rows[0]);
+    return saved.rows[0];
   });
 }
 async function listCountermeasures() {
@@ -745,9 +814,95 @@ async function listCountermeasures() {
   );
   return rows.map((r) => ({ ...r, parts: toJson(r.parts), checklist: toJson(r.checklist) }));
 }
+async function replaceCountermeasureParts(
+  client,
+  countermeasureId,
+  requestedParts,
+  previousParts,
+  user,
+) {
+  const requested = new Map();
+  for (const item of Array.isArray(requestedParts) ? requestedParts : []) {
+    const supplyId = String(item.supplyId || '');
+    const quantity = Number(item.quantity);
+    if (!supplyId || !Number.isFinite(quantity) || quantity <= 0)
+      throw new Error('Selecciona cada repuesto y una cantidad mayor que cero.');
+    requested.set(supplyId, (requested.get(supplyId) || 0) + quantity);
+  }
+  const old = new Map();
+  for (const item of Array.isArray(previousParts) ? previousParts : [])
+    if (item.supplyId)
+      old.set(item.supplyId, (old.get(item.supplyId) || 0) + Number(item.quantity || 0));
+  const ids = new Set([...requested.keys(), ...old.keys()]),
+    normalized = [];
+  let total = 0;
+  for (const supplyId of ids) {
+    const found = await client.query(
+      'SELECT * FROM supplies WHERE company_id=$1 AND id=$2 FOR UPDATE',
+      [COMPANY, supplyId],
+    );
+    if (!found.rowCount)
+      throw new Error('Uno de los repuestos seleccionados no existe en Insumos.');
+    const supply = found.rows[0],
+      next = requested.get(supplyId) || 0,
+      before = old.get(supplyId) || 0,
+      delta = next - before;
+    if (Number(supply.quantity) < delta)
+      throw new Error(
+        `Existencia insuficiente de ${supply.name}. Disponible: ${supply.quantity} ${supply.unit}.`,
+      );
+    if (delta) {
+      await client.query('UPDATE supplies SET quantity=quantity-$1,updated_at=now() WHERE id=$2', [
+        delta,
+        supplyId,
+      ]);
+      const movementType = delta > 0 ? 'CONSUMO' : 'ENTRADA';
+      await client.query(
+        'INSERT INTO supply_movements(id,company_id,supply_id,movement_type,quantity,unit_cost,countermeasure_id,technician_id,note) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [
+          `PP-MV-${randomUUID()}`,
+          COMPANY,
+          supplyId,
+          movementType,
+          Math.abs(delta),
+          Number(supply.unit_cost),
+          countermeasureId,
+          actorId(user),
+          `Ajuste de repuestos de contramedida ${countermeasureId}`,
+        ],
+      );
+    }
+    if (next) {
+      const prior = (previousParts || []).find((part) => part.supplyId === supplyId),
+        unitCost = Number(prior?.unitCost ?? supply.unit_cost);
+      const cost = next * unitCost;
+      total += cost;
+      normalized.push({
+        supplyId,
+        name: supply.name,
+        unit: supply.unit,
+        quantity: next,
+        unitCost,
+        cost,
+      });
+    }
+  }
+  return { parts: normalized, cost: total };
+}
 async function updateCountermeasure(id, input, user) {
   validateEntityId(id);
   validateCountermeasureValues(input);
+  if (Object.hasOwn(input, 'plannedAt'))
+    input = { ...input, plannedAt: validDate(input.plannedAt, 'La fecha planificada') };
+  for (const key of ['startedAt', 'completedAt'])
+    if (input[key]) {
+      const timestamp = new Date(input[key]);
+      if (Number.isNaN(timestamp.valueOf()))
+        throw new Error(
+          `La fecha de ${key === 'startedAt' ? 'inicio' : 'terminación'} no es válida.`,
+        );
+      input = { ...input, [key]: timestamp.toISOString() };
+    }
   const editable = [
     'status',
     'priority',
@@ -763,8 +918,6 @@ async function updateCountermeasure(id, input, user) {
     'completedAt',
     'laborHours',
     'laborCost',
-    'partsCost',
-    'totalCost',
     'notes',
   ];
   const columns = {
@@ -818,6 +971,56 @@ async function updateCountermeasure(id, input, user) {
       [COMPANY, id],
     );
     if (!locked.rowCount) return null;
+    let calculatedPartsCost = Number(locked.rows[0].parts_cost);
+    if (Object.hasOwn(input, 'parts')) {
+      const replacement = await replaceCountermeasureParts(
+        client,
+        id,
+        input.parts,
+        toJson(locked.rows[0].parts),
+        user,
+      );
+      calculatedPartsCost = replacement.cost;
+      const partIndex = sets.findIndex((x) => x.startsWith('"parts"='));
+      if (partIndex >= 0) {
+        values[partIndex] = JSON.stringify(replacement.parts);
+      }
+      const costIndex = sets.findIndex((x) => x.startsWith('"parts_cost"='));
+      if (costIndex >= 0) values[costIndex] = replacement.cost;
+      else {
+        values.push(replacement.cost);
+        sets.push(`parts_cost=$${values.length}`);
+      }
+      const labor = Number(input.laborCost ?? locked.rows[0].labor_cost);
+      const totalIndex = sets.findIndex((x) => x.startsWith('"total_cost"='));
+      if (totalIndex >= 0) values[totalIndex] = labor + replacement.cost;
+      else {
+        values.push(labor + replacement.cost);
+        sets.push(`total_cost=$${values.length}`);
+      }
+    }
+    const status = Object.hasOwn(input, 'status') ? input.status : locked.rows[0].status;
+    if (Object.hasOwn(input, 'status')) {
+      if (status === 'EN PROCESO' && !locked.rows[0].started_at && !input.startedAt) {
+        values.push(new Date().toISOString());
+        sets.push(`started_at=$${values.length}`);
+      }
+      if (
+        ['COMPLETADA', 'CERRADA'].includes(status) &&
+        !locked.rows[0].completed_at &&
+        !input.completedAt
+      ) {
+        values.push(new Date().toISOString());
+        sets.push(`completed_at=$${values.length}`);
+      }
+    }
+    if (Object.hasOwn(input, 'laborCost')) {
+      const labor = Number(input.laborCost);
+      if (!Number.isFinite(labor) || labor < 0)
+        throw new Error('El costo de mano de obra debe ser un número igual o mayor que cero.');
+      values.push(labor + calculatedPartsCost);
+      sets.push(`total_cost=$${values.length}`);
+    }
     values.push(id, COMPANY);
     const { rows } = await client.query(
       `UPDATE countermeasures SET ${sets.join(',')},updated_at=now() WHERE id=$${values.length - 1} AND company_id=$${values.length} RETURNING *`,
@@ -839,6 +1042,9 @@ async function recordSupplyMovement(id, input, user) {
     throw new Error('La cantidad debe ser mayor que cero.');
   const type = input.movementType || 'CONSUMO';
   if (!['ENTRADA', 'CONSUMO'].includes(type)) throw new Error('Tipo de movimiento no válido.');
+  const purchaseUnitCost = Number(input.unitCost);
+  if (type === 'ENTRADA' && (!Number.isFinite(purchaseUnitCost) || purchaseUnitCost < 0))
+    throw new Error('Indique el costo unitario de compra (puede ser 0 si fue gratuito).');
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
@@ -860,10 +1066,16 @@ async function recordSupplyMovement(id, input, user) {
     )
       throw new Error('La contramedida no pertenece a PrintPilot.');
     if (Number(supply.quantity) + delta < 0) throw new Error('No hay existencia suficiente.');
-    await client.query('UPDATE supplies SET quantity=quantity+$1,updated_at=now() WHERE id=$2', [
-      delta,
-      id,
-    ]);
+    const nextQuantity = Number(supply.quantity) + delta;
+    const weightedCost =
+      type === 'ENTRADA' && nextQuantity > 0
+        ? (Number(supply.quantity) * Number(supply.unit_cost) + quantity * purchaseUnitCost) /
+          nextQuantity
+        : Number(supply.unit_cost);
+    await client.query(
+      'UPDATE supplies SET quantity=$1,unit_cost=$2,updated_at=now() WHERE id=$3',
+      [nextQuantity, weightedCost, id],
+    );
     const movementId = `PP-MV-${randomUUID()}`;
     await client.query(
       'INSERT INTO supply_movements(id,company_id,supply_id,movement_type,quantity,unit_cost,countermeasure_id,technician_id,note) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
@@ -873,7 +1085,7 @@ async function recordSupplyMovement(id, input, user) {
         id,
         type,
         quantity,
-        Number(input.unitCost || 0),
+        type === 'ENTRADA' ? purchaseUnitCost : Number(supply.unit_cost),
         input.countermeasureId || null,
         actorId(user),
         input.note || '',
@@ -903,41 +1115,8 @@ async function requestPurchase(id, input, user) {
   if (!rows.length) throw new Error('Insumo no encontrado.');
   const supply = rows[0],
     recipient = process.env.PURCHASE_EMAIL || 'printpilot@notions.com.do';
-  let messageId = null,
-    status = 'NO_REQUERIDO';
-  if (supply.kind === 'GAS') {
-    const sender = process.env.GMAIL_USER,
-      appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
-    if (!sender || !appPassword) {
-      const e = new Error(
-        'El envío a Compras no está listo. Configura GMAIL_USER y GMAIL_APP_PASSWORD localmente; no se registró el pedido de gas.',
-      );
-      e.code = 'MAIL_NOT_CONFIGURED';
-      throw e;
-    }
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: sender, pass: appPassword },
-    });
-    try {
-      const info = await transporter.sendMail({
-        from: process.env.MAIL_FROM || sender,
-        to: recipient,
-        subject: `Solicitud de compra de gas · PrintPilot`,
-        text: `Compras:\n\nSolicitamos ordenar ${quantity} ${supply.unit} de gas para PrintPilot.\nExistencia actual: ${supply.quantity} ${supply.unit}.\nSolicitante: ${user?.displayName || 'Emmanuel'}.\nNota: ${input.note || '—'}\n\nEste aviso fue generado desde AutoMaince.`,
-      });
-      messageId = info.messageId;
-      status = 'ENVIADO';
-    } catch {
-      const e = new Error(
-        'Gmail no pudo enviar el aviso a Compras. El pedido de gas no se registró.',
-      );
-      e.code = 'MAIL_SEND_FAILED';
-      throw e;
-    }
-  }
   const idRequest = `PP-OC-${randomUUID()}`;
-  return transaction(async (client) => {
+  await transaction(async (client) => {
     const { rows } = await client.query(
       `INSERT INTO purchase_requests(id,company_id,supply_id,quantity,recipient,email_status,email_message_id,requested_by,note)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
@@ -947,15 +1126,65 @@ async function requestPurchase(id, input, user) {
         id,
         quantity,
         recipient,
-        status,
-        messageId,
+        supply.kind === 'GAS' ? 'PENDIENTE' : 'NO_REQUERIDO',
+        null,
         actorId(user),
         input.note || '',
       ],
     );
     await audit(client, user, 'SOLICITAR_COMPRA', 'ORDEN_COMPRA', idRequest, null, rows[0]);
-    return { id: idRequest, emailStatus: status, recipient };
   });
+  if (supply.kind !== 'GAS') return { id: idRequest, emailStatus: 'NO_REQUERIDO', recipient };
+  const sender = process.env.GMAIL_USER,
+    appPassword = process.env.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
+  try {
+    if (!sender || !appPassword)
+      throw Object.assign(new Error('GMAIL_NOT_CONFIGURED'), { code: 'MAIL_NOT_CONFIGURED' });
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: sender, pass: appPassword },
+    });
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || sender,
+      to: recipient,
+      subject: 'Solicitud de compra de gas · PrintPilot',
+      text: `Compras:\n\nSolicitamos ordenar ${quantity} ${supply.unit} de gas para PrintPilot.\nExistencia actual: ${supply.quantity} ${supply.unit}.\nSolicitante: ${user?.displayName || 'Emmanuel'}.\nNota: ${input.note || '—'}\n\nEste aviso fue generado desde AutoMaince.`,
+    });
+    await db.query(
+      "UPDATE purchase_requests SET email_status='ENVIADO',email_message_id=$1 WHERE id=$2",
+      [info.messageId, idRequest],
+    );
+    await db.query(
+      "INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'CORREO_COMPRA_ENVIADO','ORDEN_COMPRA',$4,$5::jsonb)",
+      [
+        COMPANY,
+        actorId(user),
+        user?.displayName || 'Emmanuel',
+        idRequest,
+        JSON.stringify({ email_status: 'ENVIADO', recipient }),
+      ],
+    );
+    return { id: idRequest, emailStatus: 'ENVIADO', recipient };
+  } catch (error) {
+    console.error('No se pudo enviar el correo de compra PrintPilot:', error.code || error.message);
+    await db.query("UPDATE purchase_requests SET email_status='ERROR' WHERE id=$1", [idRequest]);
+    await db.query(
+      "INSERT INTO audit_log(company_id,actor_id,actor_name,action,entity_type,entity_id,after_state) VALUES($1,$2,$3,'ERROR_CORREO_COMPRA','ORDEN_COMPRA',$4,$5::jsonb)",
+      [
+        COMPANY,
+        actorId(user),
+        user?.displayName || 'Emmanuel',
+        idRequest,
+        JSON.stringify({ email_status: 'ERROR', error: error.code || 'MAIL_SEND_FAILED' }),
+      ],
+    );
+    return {
+      id: idRequest,
+      emailStatus: 'ERROR',
+      recipient,
+      message: 'La solicitud quedó registrada, pero no se pudo enviar el correo a Compras.',
+    };
+  }
 }
 async function supplyMovements() {
   return (
