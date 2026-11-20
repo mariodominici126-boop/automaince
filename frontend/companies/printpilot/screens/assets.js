@@ -11,6 +11,35 @@
     const items = await ppApi(`/api/printpilot/assets?category=${encodeURIComponent(category)}`);
     return `<div class="pp-heading"><div><span class="pp-eyebrow">EQUIPOS PRINTPILOT</span><h2>${categoryTitles[category]}</h2><p>${items.length} activos de esta categoría.</p></div><button class="btn" onclick="ppAddAsset('${category}')">+ Agregar activo</button></div>${items.length ? `<div class="card table-card"><table><thead><tr><th>CÓDIGO</th><th>ACTIVO</th><th>MARCA / MODELO</th><th>UBICACIÓN</th><th>LECTURA</th><th>RESPONSABLE</th><th>ESTADO</th><th></th></tr></thead><tbody>${items.map((a) => `<tr><td><b>${h(a.code)}</b></td><td>${h(a.name)}<small>${h(a.description)}</small></td><td>${h([a.manufacturer, a.model].filter(Boolean).join(' / ') || 'Pendiente de completar')}</td><td>${h(a.location || 'Pendiente')}</td><td>${h(a.meterValue)} ${h(a.meterUnit || '')}<button class="table-action" data-pp-action="reading" data-id="${h(a.id)}">Anotar</button></td><td>${h(a.responsible || 'Sin asignar')}</td><td>${badge(a.operational_status)}</td><td><button class="table-action" data-pp-action="asset" data-id="${h(a.id)}">Ficha</button></td></tr>`).join('')}</tbody></table></div>` : empty('No hay activos en esta sección.')}`;
   };
+  window.printpilotPages['printpilot-assets'] = async () => {
+    const items = await ppApi('/api/printpilot/assets');
+    const categories = [
+      ['AIRES', 'Aires', 'printpilot-air'],
+      ['FILTROS', 'Filtros', 'printpilot-filters'],
+      ['IMPRESORAS', 'Impresoras', 'printpilot-printers'],
+      ['HORNO_SECADO', 'Hornos y secadoras', 'printpilot-oven'],
+      ['INFRAESTRUCTURA', 'Infraestructura', 'printpilot-infrastructure'],
+      ['CORTADORAS', 'Cortadoras', 'printpilot-cutter'],
+    ];
+    const categoryName = Object.fromEntries(categories.map(([key, label]) => [key, label]));
+    return `<div class="pp-heading"><div><span class="pp-eyebrow">INVENTARIO PRINTPILOT</span><h2>Activos registrados</h2><p>${items.length} activos registrados en todas las categorías.</p></div></div>
+      <div class="grid pp-asset-categories">${categories
+        .map(([key, label, page]) => {
+          const count = items.filter((asset) => asset.category === key).length;
+          return `<button class="card pp-asset-category" data-pp-page="${page}" aria-label="Ver ${label}"><span>${h(label)}</span><b>${count}</b><small>Ver categoría →</small></button>`;
+        })
+        .join('')}</div>
+      <div class="card table-card pp-top-space">${
+        items.length
+          ? `<table><thead><tr><th>CÓDIGO</th><th>ACTIVO</th><th>CATEGORÍA</th><th>MARCA / MODELO</th><th>UBICACIÓN</th><th>ESTADO</th><th></th></tr></thead><tbody>${items
+              .map(
+                (asset) =>
+                  `<tr><td><b>${h(asset.code)}</b></td><td>${h(asset.name)}<small>${h(asset.description || '')}</small></td><td>${h(categoryName[asset.category] || asset.category)}</td><td>${h([asset.manufacturer, asset.model].filter(Boolean).join(' / ') || 'Pendiente de completar')}</td><td>${h(asset.location || 'Pendiente')}</td><td>${badge(asset.operational_status)}</td><td><button class="table-action" data-pp-action="asset" data-id="${h(asset.id)}">Ficha</button></td></tr>`,
+              )
+              .join('')}</tbody></table>`
+          : empty('No hay activos registrados todavía.')
+      }</div>`;
+  };
   window.ppAddAsset = (category) =>
     window.openModal(
       `<h2>Agregar activo</h2><form class="form pp-form" data-pp-submit="create-asset"><input type="hidden" name="category" value="${h(category)}"><label>Código único<input name="code" required></label><label>Nombre<input name="name" required></label><label class="wide">Descripción<input name="description"></label><label>Marca / proveedor<input name="manufacturer"></label><label>Modelo<input name="model"></label><label>Número de serie<input name="serialNumber"></label><label>Fecha de adquisición<input name="acquiredOn" type="date"></label><label>Ubicación<input name="location"></label><label>Departamento<input name="department"></label><label>Responsable<input name="responsible"></label><label>Criticidad<select name="criticality"><option>MEDIA</option><option>BAJA</option><option>ALTA</option><option>CRITICA</option></select></label><label>Estado<select name="operationalStatus"><option>OPERATIVO</option><option>MANTENIMIENTO</option><option>FUERA DE SERVICIO</option></select></label><div class="modal-actions wide"><button class="btn secondary" type="button" onclick="closeModal()">Cancelar</button><button class="btn">Guardar activo</button></div></form>`,
