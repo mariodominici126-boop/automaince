@@ -291,6 +291,25 @@
   transform: translate(-50%, -45%) scale(1.035);
 }
 
+/* Original high-resolution identity files use full wordmarks, so show each
+   image intact instead of cropping the older compact logo artwork. */
+#accessPortal .company-notions .company-logo-image img,
+#accessPortal .company-now .company-logo-image img {
+  position: static;
+  width: auto;
+  height: auto;
+  max-width: 96%;
+  max-height: 90%;
+  clip-path: none;
+  object-fit: contain;
+  transform: none;
+}
+
+#accessPortal .company-notions:hover .company-logo-image img,
+#accessPortal .company-now:hover .company-logo-image img {
+  transform: scale(1.025);
+}
+
 #accessPortal .company-name {
   display: block;
   color: #263b34;
