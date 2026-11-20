@@ -6,7 +6,7 @@
 .login-gtg .login-brand-panel:before{right:2%;background:#f1f2f4}
 .login-gtg .login-back{color:#414650;background:#ffffffd9;border:1px solid #dfe2e6;border-radius:24px;font-weight:650}
 .login-gtg .login-brand-content{z-index:1}
-.login-gtg .login-logo-image{background:#fff;border:1px solid #e5e7ea;border-radius:8px;box-shadow:0 12px 32px #292d3510}
+.login-gtg .login-logo-image{background:transparent;border:0;border-radius:0;box-shadow:none}
 .login-gtg .login-label{color:#d52c35;letter-spacing:2px}
 .login-gtg .login-brand-content h1{font-size:clamp(42px,6vw,82px);font-weight:800;letter-spacing:-4px;line-height:.95;color:#292d35;margin:15px 0}
 .login-gtg .login-brand-content p{color:#858b94;max-width:340px}
