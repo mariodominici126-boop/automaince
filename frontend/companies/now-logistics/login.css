@@ -183,7 +183,7 @@
   color: #17203b;
 }
 .workspace.company-now .btn:not(.secondary) {
-  color: #fff;
+  color: #fff !important;
 }
 .workspace.company-now .btn:hover {
   background: #858585;
