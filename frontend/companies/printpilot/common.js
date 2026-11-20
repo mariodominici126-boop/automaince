@@ -8,6 +8,60 @@
     );
   const money = (value) =>
     `$${Number(value || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatDate = (value) => {
+    if (!value) return '—';
+    const raw = String(value);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T12:00:00Z`) : new Date(raw);
+    return Number.isNaN(date.valueOf())
+      ? raw
+      : new Intl.DateTimeFormat('es-DO', {
+          timeZone: 'America/Santo_Domingo',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).format(date);
+  };
+  const dateInput = (value) => {
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(String(value))) return String(value).slice(0, 10);
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(value));
+    return `${parts.find((x) => x.type === 'year').value}-${parts.find((x) => x.type === 'month').value}-${parts.find((x) => x.type === 'day').value}`;
+  };
+  const formatDateTime = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.valueOf())
+      ? String(value)
+      : new Intl.DateTimeFormat('es-DO', {
+          timeZone: 'America/Santo_Domingo',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        }).format(date);
+  };
+  const dateTimeInput = (value) => {
+    if (!value) return '';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date(value));
+    const get = (type) => parts.find((x) => x.type === type).value;
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+  };
+  const dateTimeToISO = (value) => (value ? new Date(`${value}:00-04:00`).toISOString() : null);
   async function ppApi(url, options = {}) {
     const response = await window.apiRequest(url, options);
     const result = await response.json();
@@ -26,7 +80,19 @@
         .toLowerCase()
         .replaceAll(' ', '-'),
     )}">${h(status || 'PENDIENTE')}</span>`;
-  window.printpilotHelpers = { h, money, ppApi, json, empty, badge };
+  window.printpilotHelpers = {
+    h,
+    money,
+    ppApi,
+    json,
+    empty,
+    badge,
+    formatDate,
+    formatDateTime,
+    dateInput,
+    dateTimeInput,
+    dateTimeToISO,
+  };
   const menu = [
     ['dashboard', '▦', 'Panel de control'],
     ['printpilot-assets', '▣', 'Activos'],
@@ -78,10 +144,34 @@
     const select = event.target.closest('[data-pp-action="countermeasure-status"]');
     if (select) window.ppSetCountermeasure(select.dataset.id, select.value);
   });
+  window.ppSubmitForm = async (event, operation) => {
+    event.preventDefault();
+    const form = event.target.closest('form');
+    if (!form || form.dataset.submitting === 'true') return;
+    form.dataset.submitting = 'true';
+    const buttons = [...form.querySelectorAll('button[type="submit"],button:not([type])')];
+    buttons.forEach((button) => {
+      button.disabled = true;
+      button.dataset.originalText = button.textContent;
+      button.textContent = 'Guardando…';
+    });
+    try {
+      await operation(event);
+    } catch (error) {
+      window.formError({ error: error.message || 'No se pudo completar la operación.' });
+    } finally {
+      if (form.isConnected) {
+        delete form.dataset.submitting;
+        buttons.forEach((button) => {
+          button.disabled = false;
+          if (button.dataset.originalText) button.textContent = button.dataset.originalText;
+        });
+      }
+    }
+  };
   const handlePpSubmit = (event) => {
     const form = event.target.closest('[data-pp-submit]');
     if (!form) return;
-    event.preventDefault();
     const actions = {
       'save-asset': (e, id) => window.ppSaveAsset(e, id),
       'save-reading': (e, id) => window.ppSaveReading(e, id),
@@ -90,8 +180,15 @@
       'save-supply': (e, id) => window.ppSaveSupply(e, id, form.dataset.movementType),
       'send-purchase': (e, id) => window.ppSendPurchase(e, id),
       'update-technician': (e, id) => window.ppUpdateTechnician(e, id),
+      'create-plan': (e) => window.ppSavePlan(e),
+      'create-asset': (e) => window.ppSaveNewAsset(e),
+      'create-countermeasure': (e) => window.ppSaveCountermeasure(e),
+      'email-countermeasure': (e) => window.ppOpenGmail(e),
+      'upload-document': (e) => window.ppUploadDocument(e),
+      'create-technician': (e) => window.ppSaveTechnician(e),
     };
-    actions[form.dataset.ppSubmit]?.(event, form.dataset.id);
+    const action = actions[form.dataset.ppSubmit];
+    if (action) window.ppSubmitForm(event, () => action(event, form.dataset.id));
   };
   appRoot?.addEventListener('submit', handlePpSubmit);
   document.querySelector('#modal')?.addEventListener('submit', handlePpSubmit);

@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS assets (
   UNIQUE(company_id, code)
 );
 CREATE INDEX IF NOT EXISTS assets_company_category_idx ON assets(company_id, category, name);
+DO $$ BEGIN
+  ALTER TABLE assets ADD CONSTRAINT assets_criticality_check CHECK (criticality IN ('BAJA','MEDIA','ALTA','CRITICA')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE assets ADD CONSTRAINT assets_operational_status_check CHECK (operational_status IN ('OPERATIVO','MANTENIMIENTO','FUERA DE SERVICIO')) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+ALTER TABLE assets VALIDATE CONSTRAINT assets_criticality_check;
+ALTER TABLE assets VALIDATE CONSTRAINT assets_operational_status_check;
 
 CREATE TABLE IF NOT EXISTS maintenance_plans (
   id TEXT PRIMARY KEY,

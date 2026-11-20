@@ -10,6 +10,7 @@ const expectedScreens = [
   'dashboard',
   'printpilot-agenda',
   'printpilot-air',
+  'printpilot-assets',
   'printpilot-filters',
   'printpilot-printers',
   'printpilot-oven',

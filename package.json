@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/server.js",
     "test": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/*.test.js",
-    "test:integration": "node --env-file-if-exists=.env --test tests/phase0.integration.test.js && node --env-file-if-exists=.env --test tests/phase1.integration.test.js && node --env-file-if-exists=.env --test tests/now-logistics.integration.test.js",
+    "test:integration": "node --env-file-if-exists=.env --test tests/phase0.integration.test.js && node --env-file-if-exists=.env --test tests/phase1.integration.test.js && node --env-file-if-exists=.env --test tests/phase4-corrections.integration.test.js && node --env-file-if-exists=.env --test tests/now-logistics.integration.test.js",
     "db:reset": "node --env-file-if-exists=.env scripts/db-reset.js",
     "demo:printpilot": "node --env-file-if-exists=.env scripts/demo-printpilot.js",
     "lint": "eslint backend/server.js backend/companies/printpilot backend/companies/now-logistics frontend/companies/printpilot frontend/companies/now-logistics frontend/utils/app.js tests",

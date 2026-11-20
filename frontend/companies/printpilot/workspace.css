@@ -11,6 +11,8 @@
   --green: #448562;
 }
 .workspace.company-printpilot aside {
+  display: flex;
+  flex-direction: column;
   background: #171716;
   border-right: 1px solid #292826;
 }
@@ -26,7 +28,7 @@
   scrollbar-color: #57564f #171716;
 }
 .workspace.company-printpilot nav {
-  padding-bottom: 58px;
+  padding-bottom: 12px;
 }
 .workspace.company-printpilot .brand {
   display: flex;
@@ -60,6 +62,11 @@
 }
 .workspace.company-printpilot .sidebar-foot {
   color: #aaa79f;
+  position: static;
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding: 12px 8px;
+  background: #171716;
 }
 .workspace.company-printpilot main {
   background: var(--bg);
@@ -399,6 +406,50 @@
 }
 @media (max-width: 420px) {
   .workspace.company-printpilot .pp-asset-categories {
+    grid-template-columns: 1fr;
+  }
+}
+.workspace.company-printpilot main,
+.workspace.company-printpilot #app {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+.workspace.company-printpilot .table-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.workspace.company-printpilot .table-card table {
+  min-width: 620px;
+}
+.workspace.company-printpilot .pp-parts-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.workspace.company-printpilot .pp-parts-picker legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.workspace.company-printpilot .pp-parts-picker label {
+  display: grid;
+  grid-template-columns: auto 1fr 82px;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+.workspace.company-printpilot .pp-parts-picker input[type='checkbox'] {
+  width: auto;
+}
+@media (max-width: 700px) {
+  .workspace.company-printpilot .pp-parts-picker {
     grid-template-columns: 1fr;
   }
 }

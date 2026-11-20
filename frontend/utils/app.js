@@ -57,6 +57,31 @@ const titles = {
 let activePage = 'dashboard';
 let workspaceHistoryIndex = 0;
 let updates;
+const pageSlugs = {
+  dashboard: 'panel',
+  'printpilot-assets': 'activos',
+  'printpilot-agenda': 'semana-mes',
+  'printpilot-filters': 'filtros',
+  'printpilot-air': 'aires',
+  'printpilot-printers': 'impresoras',
+  'printpilot-oven': 'hornos',
+  'printpilot-infrastructure': 'infraestructura',
+  'printpilot-cutter': 'cortadoras',
+  'printpilot-maintenance': 'mantenimientos',
+  'printpilot-countermeasures': 'contramedidas',
+  'printpilot-supplies': 'insumos',
+  'printpilot-documents': 'documentos',
+  'printpilot-reports': 'informes',
+  'printpilot-audit': 'bitacora',
+  'printpilot-technicians': 'tecnicos',
+};
+const pageFromHash = (hash) =>
+  Object.keys(pageSlugs).find((page) => pageSlugs[page] === String(hash || '').replace(/^#/, ''));
+window.pageFromHash = pageFromHash;
+const pageUrl = (page) =>
+  document.querySelector('#workspace')?.classList.contains('company-printpilot') && pageSlugs[page]
+    ? `#${pageSlugs[page]}`
+    : location.pathname;
 window.connectDataEvents = () => {
   window.closeDataEvents();
   const token = sessionStorage.getItem('automaince.token');
@@ -108,7 +133,7 @@ window.loadWorkspaceData = () =>
 window.resetWorkspaceHistory = function (page) {
   activePage = page;
   workspaceHistoryIndex = 0;
-  window.history.replaceState({ autoMaincePage: page, autoMainceIndex: 0 }, '', location.href);
+  window.history.replaceState({ autoMaincePage: page, autoMainceIndex: 0 }, '', pageUrl(page));
 };
 async function navigate(page, options = {}) {
   if (options.history !== false && page !== activePage) {
@@ -116,7 +141,7 @@ async function navigate(page, options = {}) {
     window.history.pushState(
       { autoMaincePage: page, autoMainceIndex: workspaceHistoryIndex },
       '',
-      location.href,
+      pageUrl(page),
     );
   }
   activePage = page;
@@ -141,9 +166,10 @@ async function navigate(page, options = {}) {
 window.navigate = navigate;
 window.addEventListener('popstate', (event) => {
   const state = event.state;
-  if (!state || typeof state.autoMaincePage !== 'string') return;
-  workspaceHistoryIndex = Number(state.autoMainceIndex) || 0;
-  navigate(state.autoMaincePage, { history: false });
+  const page = state?.autoMaincePage || pageFromHash(location.hash);
+  if (!page) return;
+  workspaceHistoryIndex = Number(state?.autoMainceIndex) || 0;
+  navigate(page, { history: false });
 });
 const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
 const mobileNavScrim = document.querySelector('.mobile-nav-scrim');
@@ -174,11 +200,7 @@ workspaceRoot.addEventListener(
   (event) => {
     if (event.touches.length !== 1) return;
     const target = event.target;
-    if (
-      target.closest(
-        'input, textarea, select, [contenteditable="true"], #modal:not(.hidden)',
-      )
-    )
+    if (target.closest('input, textarea, select, [contenteditable="true"], #modal:not(.hidden)'))
       return;
     const menuOpen = workspaceRoot.classList.contains('menu-open');
     const startX = event.touches[0].clientX;
@@ -214,8 +236,7 @@ workspaceRoot.addEventListener(
       setMobileNavOpen(false);
       return;
     }
-    if (!start.menuOpen && deltaX > 0 && workspaceHistoryIndex > 0)
-      window.history.back();
+    if (!start.menuOpen && deltaX > 0 && workspaceHistoryIndex > 0) window.history.back();
   },
   { passive: true },
 );
@@ -235,11 +256,41 @@ document.addEventListener('keydown', (event) => {
 });
 document.querySelector('.notification').addEventListener('click', () => navigate('alerts'));
 function openModal(content) {
-  document.querySelector('#modal').innerHTML = `<div class="modal-box">${content}</div>`;
-  document.querySelector('#modal').classList.remove('hidden');
+  const modal = document.querySelector('#modal');
+  modal.innerHTML = `<div class="modal-box">${content}</div>`;
+  modal.classList.remove('hidden');
+  const form = modal.querySelector('form');
+  if (form) {
+    form.dataset.initialState = [...form.elements]
+      .map(
+        (el) =>
+          `${el.name}:${el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value}`,
+      )
+      .join('|');
+    window.requestAnimationFrame(() =>
+      form
+        .querySelector('input:not([type="hidden"]),select,textarea')
+        ?.focus({ preventScroll: true }),
+    );
+  }
 }
-function closeModal() {
-  document.querySelector('#modal').classList.add('hidden');
+function closeModal(force = false) {
+  const modal = document.querySelector('#modal'),
+    form = modal.querySelector('form');
+  if (!force && form && form.dataset.submitting !== 'true') {
+    const current = [...form.elements]
+      .map(
+        (el) =>
+          `${el.name}:${el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value}`,
+      )
+      .join('|');
+    if (
+      form.dataset.initialState !== current &&
+      !window.confirm('Hay cambios sin guardar. ¿Deseas descartarlos?')
+    )
+      return;
+  }
+  modal.classList.add('hidden');
 }
 function formError(data) {
   const toast = document.querySelector('#toast');
@@ -247,8 +298,20 @@ function formError(data) {
   toast.classList.remove('hidden');
   setTimeout(() => toast.classList.add('hidden'), 4000);
 }
-document.querySelector('#modal').addEventListener('click', (e) => {
-  if (e.target.id === 'modal') closeModal();
+const modalRoot = document.querySelector('#modal');
+let backdropPointerDown = false;
+modalRoot.addEventListener('pointerdown', (e) => {
+  backdropPointerDown = e.target === modalRoot;
+});
+modalRoot.addEventListener('click', (e) => {
+  if (e.target === modalRoot && backdropPointerDown) closeModal();
+  backdropPointerDown = false;
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !modalRoot.classList.contains('hidden')) {
+    event.preventDefault();
+    closeModal();
+  }
 });
 async function genericPage(page) {
   if (page === 'repairs') {

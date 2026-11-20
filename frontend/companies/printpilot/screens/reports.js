@@ -1,5 +1,5 @@
 (() => {
-  const { h, money, ppApi, json, empty, badge } = window.printpilotHelpers;
+  const { h, money, ppApi, json, empty, badge, formatDate } = window.printpilotHelpers;
   window.printpilotPages['printpilot-reports'] = async () => {
     const [assets, rows] = await Promise.all([
       ppApi('/api/printpilot/assets'),
@@ -10,7 +10,7 @@
   };
   function ppReportTable(rows) {
     return rows.length
-      ? `<table><thead><tr><th>FECHA</th><th>ACTIVO</th><th>TIPO</th><th>TRABAJO</th><th>TÉCNICO</th><th>HORAS</th><th>COSTO</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${h(r.completed_at || r.planned_at || '—')}</td><td>${h(r.asset_code)} · ${h(r.asset_name)}</td><td>${h(r.kind)}</td><td>${h(r.description)}</td><td>${h(r.technician_name || '—')}</td><td>${h(r.labor_hours)}</td><td>${money(r.total_cost)}</td></tr>`).join('')}</tbody></table>`
+      ? `<table><thead><tr><th>FECHA</th><th>ACTIVO</th><th>TIPO</th><th>TRABAJO</th><th>TÉCNICO</th><th>HORAS</th><th>COSTO</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${h(r.completed_at ? formatDate(r.completed_at) : formatDate(r.planned_at))}</td><td>${h(r.asset_code)} · ${h(r.asset_name)}</td><td>${h(r.kind)}</td><td>${h(r.description)}</td><td>${h(r.technician_name || '—')}</td><td>${h(r.labor_hours)}</td><td>${money(r.total_cost)}</td></tr>`).join('')}</tbody></table>`
       : empty('No hay resultados para este filtro.');
   }
   window.ppCurrentReportRows = [];
@@ -34,7 +34,7 @@
       [
         cols,
         ...rows.map((r) => [
-          r.completed_at || r.planned_at,
+          r.completed_at ? formatDate(r.completed_at) : formatDate(r.planned_at),
           r.asset_code,
           r.asset_name,
           r.kind,
